@@ -19,7 +19,7 @@ export async function runDatabaseSeed() {
     },
   });
 
-  // 2. Somali Companies (with full English corporate profiles)
+  // 2. Somali Companies
   const dahabshiilCompany = await prisma.company.upsert({
     where: { code: 'DAHAB' },
     update: {},
@@ -153,7 +153,7 @@ export async function runDatabaseSeed() {
     create: {
       id: 'subj-aml-compliance-01',
       companyId: dahabshiilCompany.id,
-      creatorId: dahabAdmin.id,
+      createdById: dahabAdmin.id,
       code: 'FIN-AML-101',
       name: 'Anti-Money Laundering (AML) & CFT Compliance',
       description: 'Comprehensive regulatory framework, suspicious activity reporting (SAR), and international sanction compliance standards.',
@@ -168,7 +168,7 @@ export async function runDatabaseSeed() {
     create: {
       id: 'subj-cyber-security-01',
       companyId: dahabshiilCompany.id,
-      creatorId: dahabAdmin.id,
+      createdById: dahabAdmin.id,
       code: 'SEC-ZERO-202',
       name: 'Zero-Trust Cybersecurity & Information Protection',
       description: 'Enterprise threat detection, multi-factor credential governance, phishing defense, and customer data privacy compliance.',
@@ -178,30 +178,29 @@ export async function runDatabaseSeed() {
   });
 
   // 6. Enterprise Exam
-  const examAML = await prisma.exam.upsert({
+  await prisma.exam.upsert({
     where: { id: 'exam-aml-cert-2026' },
     update: {},
     create: {
       id: 'exam-aml-cert-2026',
       companyId: dahabshiilCompany.id,
-      creatorId: dahabAdmin.id,
+      createdById: dahabAdmin.id,
       subjectId: subjectAML.id,
+      code: 'EXAM-AML-2026',
       title: 'Annual AML & Financial Crime Risk Certification (2026)',
       description: 'Mandatory annual enterprise certification evaluating regulatory compliance, KYC/CDD protocols, and suspicious transaction escalation procedures.',
       instructions: '1. Total Questions: 10.\n2. Passing Threshold: 75%.\n3. Complete within 30 minutes.\n4. AI proctoring and tab-switching monitoring active.',
       durationMinutes: 30,
-      passingPercentage: 75,
+      passScorePercent: 75,
       maxAttempts: 3,
-      shuffleQuestions: true,
-      shuffleOptions: true,
-      enableAIProctoring: true,
-      enableWebcamCapture: true,
-      enableTabMonitoring: true,
-      maxTabSwitches: 3,
-      issueCertificate: true,
-      certificateTemplate: 'EXECUTIVE_NAVY',
+      randomQuestions: true,
+      randomOptions: true,
+      fullScreenRequired: true,
+      tabSwitchDetect: true,
+      copyPasteRestrict: true,
+      isCertEligible: true,
       status: 'PUBLISHED',
-      totalScore: 100,
+      totalMarks: 100,
     },
   });
 
