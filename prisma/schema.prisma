@@ -1,0 +1,433 @@
+// Prisma Schema for Multi-Tenant Enterprise AI Exam & Certification Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id              String           @id @default(cuid())
+  name            String
+  code            String           @unique
+  logo            String?
+  email           String?
+  phone           String?
+  address         String?
+  website         String?
+  industry        String?
+  registrationNo  String?
+  status          String           @default("ACTIVE") // ACTIVE, SUSPENDED, PENDING
+  plan            String           @default("ENTERPRISE") // FREE, STARTER, PRO, ENTERPRISE
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  users           User[]
+  departments     Department[]
+  positions       Position[]
+  employeeProfiles EmployeeProfile[]
+  subjects        Subject[]
+  questions       Question[]
+  exams           Exam[]
+  examAssignments ExamAssignment[]
+  examAttempts    ExamAttempt[]
+  results         Result[]
+  certificates    Certificate[]
+  aiAnalyses      AIAnalysis[]
+  trainingRecommendations TrainingRecommendation[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+}
+
+model User {
+  id              String           @id @default(cuid())
+  companyId       String?
+  company         Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  email           String           @unique
+  passwordHash    String
+  name            String
+  role            String           @default("EMPLOYEE") // SUPER_ADMIN, COMPANY_ADMIN, HR_MANAGER, TRAINING_MANAGER, EXAMINER, DEPARTMENT_MANAGER, AUDITOR, EMPLOYEE
+  status          String           @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+  avatar          String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  employeeProfile EmployeeProfile?
+  createdSubjects Subject[]        @relation("SubjectCreator")
+  createdQuestions Question[]      @relation("QuestionCreator")
+  createdExams    Exam[]           @relation("ExamCreator")
+  examAttempts    ExamAttempt[]
+  results         Result[]
+  certificates    Certificate[]
+  aiAnalyses      AIAnalysis[]
+  trainingRecommendations TrainingRecommendation[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+}
+
+model Department {
+  id              String           @id @default(cuid())
+  companyId       String
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name            String
+  code            String
+  description     String?
+  headId          String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  teams           Team[]
+  positions       Position[]
+  employeeProfiles EmployeeProfile[]
+  subjects        Subject[]
+  examAssignments ExamAssignment[]
+
+  @@unique([companyId, code])
+}
+
+model Team {
+  id              String           @id @default(cuid())
+  departmentId    String
+  department      Department       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  employeeProfiles EmployeeProfile[]
+  examAssignments ExamAssignment[]
+}
+
+model Position {
+  id              String           @id @default(cuid())
+  companyId       String
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  departmentId    String?
+  department      Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  name            String
+  description     String?
+  createdAt       DateTime         @default(now())
+
+  employeeProfiles EmployeeProfile[]
+  examAssignments ExamAssignment[]
+}
+
+model EmployeeProfile {
+  id                 String       @id @default(cuid())
+  userId             String       @unique
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId          String
+  company            Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId         String
+  departmentId       String?
+  department         Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  teamId             String?
+  team               Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  positionId         String?
+  position           Position?    @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  managerId          String?
+  hireDate           DateTime?
+  phone              String?
+  skillsJson         String?      // JSON array of strings
+  certificationsJson String?      // JSON array of objects
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  examAssignments    ExamAssignment[]
+
+  @@unique([companyId, employeeId])
+}
+
+model Subject {
+  id              String           @id @default(cuid())
+  companyId       String
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name            String
+  code            String
+  description     String?
+  departmentId    String?
+  department      Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  category        String           @default("General")
+  difficulty      String           @default("INTERMEDIATE") // BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+  status          String           @default("ACTIVE") // ACTIVE, INACTIVE, DRAFT
+  createdById     String
+  createdBy       User             @relation("SubjectCreator", fields: [createdById], references: [id])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  topics          Topic[]
+  questions       Question[]
+  exams           Exam[]
+
+  @@unique([companyId, code])
+}
+
+model Topic {
+  id              String           @id @default(cuid())
+  subjectId       String
+  subject         Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?
+  createdAt       DateTime         @default(now())
+
+  questions       Question[]
+}
+
+model Question {
+  id              String           @id @default(cuid())
+  companyId       String
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subjectId       String
+  subject         Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topicId         String?
+  topic           Topic?           @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  questionText    String
+  type            String           @default("MCQ") // MCQ, TRUE_FALSE, MULTIPLE_SELECT, SHORT_ANSWER, ESSAY, SCENARIO
+  difficulty      String           @default("MEDIUM") // EASY, MEDIUM, HARD, EXPERT
+  marks           Float            @default(1.0)
+  explanation     String?
+  tags            String?          // Comma-separated or JSON
+  status          String           @default("ACTIVE") // ACTIVE, DRAFT, ARCHIVED
+  createdById     String
+  createdBy       User             @relation("QuestionCreator", fields: [createdById], references: [id])
+  isAiGenerated   Boolean          @default(false)
+  usageCount      Int              @default(0)
+  version         Int              @default(1)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  options         QuestionOption[]
+  examQuestions   ExamQuestion[]
+  attemptAnswers  AttemptAnswer[]
+}
+
+model QuestionOption {
+  id              String           @id @default(cuid())
+  questionId      String
+  question        Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionText      String
+  isCorrect       Boolean          @default(false)
+  orderIndex      Int              @default(0)
+}
+
+model Exam {
+  id                  String           @id @default(cuid())
+  companyId           String
+  company             Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subjectId           String
+  subject             Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  title               String
+  code                String
+  description         String?
+  instructions        String?
+  examType            String           @default("CERTIFICATION") // PRACTICE, ASSESSMENT, CERTIFICATION, TRAINING_QUIZ, FINAL_EXAM
+  durationMinutes     Int              @default(60)
+  passScorePercent    Float            @default(70.0)
+  totalMarks          Float            @default(100.0)
+  questionCount       Int              @default(10)
+  randomQuestions     Boolean          @default(false)
+  randomOptions       Boolean          @default(false)
+  allowRetakes        Boolean          @default(true)
+  maxAttempts         Int              @default(3)
+  isCertEligible      Boolean          @default(true)
+  scheduleStart       DateTime?
+  scheduleEnd         DateTime?
+  timeZone            String           @default("UTC")
+  fullScreenRequired  Boolean          @default(true)
+  tabSwitchDetect     Boolean          @default(true)
+  copyPasteRestrict   Boolean          @default(true)
+  status              String           @default("PUBLISHED") // DRAFT, PUBLISHED, ARCHIVED
+  createdById         String
+  createdBy           User             @relation("ExamCreator", fields: [createdById], references: [id])
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  examQuestions       ExamQuestion[]
+  assignments         ExamAssignment[]
+  attempts            ExamAttempt[]
+  results             Result[]
+  certificates        Certificate[]
+
+  @@unique([companyId, code])
+}
+
+model ExamQuestion {
+  id              String           @id @default(cuid())
+  examId          String
+  exam            Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
+  questionId      String
+  question        Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  orderIndex      Int              @default(0)
+  marks           Float            @default(1.0)
+}
+
+model ExamAssignment {
+  id              String           @id @default(cuid())
+  companyId       String
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  examId          String
+  exam            Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
+  targetType      String           @default("INDIVIDUAL") // INDIVIDUAL, DEPARTMENT, TEAM, POSITION, ALL_COMPANY
+  employeeProfileId String?
+  employeeProfile EmployeeProfile? @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  departmentId    String?
+  department      Department?      @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  teamId          String?
+  team            Team?            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  positionId      String?
+  position        Position?        @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  assignedAt      DateTime         @default(now())
+  dueDate         DateTime?
+  status          String           @default("ASSIGNED") // ASSIGNED, IN_PROGRESS, COMPLETED, EXPIRED
+}
+
+model ExamAttempt {
+  id                     String          @id @default(cuid())
+  companyId              String
+  company                Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  examId                 String
+  exam                   Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  userId                 String
+  user                   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attemptNumber          Int             @default(1)
+  startedAt              DateTime        @default(now())
+  submittedAt            DateTime?
+  durationSeconds        Int             @default(0)
+  status                 String          @default("IN_PROGRESS") // IN_PROGRESS, SUBMITTED, TIMED_OUT, CANCELLED
+  totalMarksEarned       Float           @default(0.0)
+  maxMarks               Float           @default(0.0)
+  percentage             Float           @default(0.0)
+  isPassed               Boolean         @default(false)
+  currentQuestionIndex   Int             @default(0)
+  antiCheatIncidentsJson String?         // JSON array of logged incidents (tab switches, exit full screen, etc.)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  answers                AttemptAnswer[]
+  result                 Result?
+}
+
+model AttemptAnswer {
+  id                    String          @id @default(cuid())
+  attemptId             String
+  attempt               ExamAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId            String
+  question              Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptionIdsJson String?         // JSON array of selected Option IDs for MCQ/Multi-select
+  textAnswer            String?         // Text response for short answer / essay
+  isCorrect             Boolean?
+  marksEarned           Float           @default(0.0)
+  feedback              String?
+  isFlaggedForReview    Boolean         @default(false)
+  answeredAt            DateTime        @default(now())
+}
+
+model Result {
+  id                 String          @id @default(cuid())
+  companyId          String
+  company            Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  attemptId          String          @unique
+  attempt            ExamAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  examId             String
+  exam               Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalScore         Float
+  maxScore           Float
+  percentage         Float
+  isPassed           Boolean
+  correctCount       Int
+  wrongCount         Int
+  unansweredCount    Int
+  timeSpentSeconds   Int
+  gradedAt           DateTime        @default(now())
+  topicBreakdownJson String?         // JSON object detailing topic-by-topic % performance
+
+  certificate        Certificate?
+  aiAnalysis         AIAnalysis?
+}
+
+model Certificate {
+  id                String          @id @default(cuid())
+  companyId         String
+  company           Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  resultId          String          @unique
+  result            Result          @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examId            String
+  exam              Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  certNumber        String          @unique
+  issueDate         DateTime        @default(now())
+  expiryDate        DateTime?
+  status            String          @default("VALID") // VALID, EXPIRED, REVOKED
+  verificationToken String          @unique @default(cuid())
+  pdfUrl            String?
+  metadataJson      String?         // Additional certificate metadata (e.g. issuer signatures, honors)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model AIAnalysis {
+  id                       String          @id @default(cuid())
+  companyId                String
+  company                  Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  resultId                 String          @unique
+  result                   Result          @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  userId                   String
+  user                     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  overallSummary           String
+  weakTopicsJson           String          // JSON array of weak topics
+  strongTopicsJson         String          // JSON array of strong topics
+  improvementRoadmapJson   String          // JSON array of step-by-step actions
+  recommendedActionsJson   String          // JSON array of course/assessment suggestions
+  createdAt                DateTime        @default(now())
+}
+
+model TrainingRecommendation {
+  id              String           @id @default(cuid())
+  companyId       String
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicTitle      String
+  courseTitle     String
+  description     String
+  priority        String           @default("MEDIUM") // HIGH, MEDIUM, LOW
+  status          String           @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Notification {
+  id              String           @id @default(cuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId       String?
+  company         Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title           String
+  message         String
+  type            String           @default("SYSTEM") // EXAM_ASSIGNED, EXAM_DEADLINE, RESULT_AVAILABLE, CERTIFICATE_ISSUED, CERT_EXPIRING, SYSTEM
+  isRead          Boolean          @default(false)
+  linkUrl         String?
+  createdAt       DateTime         @default(now())
+}
+
+model AuditLog {
+  id              String           @id @default(cuid())
+  companyId       String?
+  company         Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  userId          String?
+  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail       String?
+  action          String           // LOGIN, LOGOUT, CREATE_USER, CREATE_EXAM, SUBMIT_EXAM, ISSUE_CERT, REVOKE_CERT, etc.
+  entity          String           // USER, EXAM, RESULT, CERTIFICATE, COMPANY, etc.
+  entityId        String?
+  detailsJson     String?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime         @default(now())
+}
