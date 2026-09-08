@@ -146,6 +146,34 @@ export async function runDatabaseSeed() {
     },
   });
 
+  const employeeCarab = await prisma.user.upsert({
+    where: { email: 'mohamed.carab@dahabshiil.so' },
+    update: {},
+    create: {
+      companyId: dahabshiilCompany.id,
+      email: 'mohamed.carab@dahabshiil.so',
+      passwordHash: defaultPasswordHash,
+      name: 'Mohamed Carab',
+      role: 'EMPLOYEE',
+      status: 'ACTIVE',
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+    },
+  });
+
+  await prisma.employeeProfile.upsert({
+    where: { userId: employeeCarab.id },
+    update: {},
+    create: {
+      userId: employeeCarab.id,
+      companyId: dahabshiilCompany.id,
+      employeeId: 'EMP-DBI-2026',
+      phone: '+252 (61) 999-0999',
+      hireDate: new Date('2024-01-15'),
+      skillsJson: JSON.stringify(['Banking Operations', 'Financial Intelligence', 'Risk Assessment', 'AML/CFT Compliance']),
+      certificationsJson: JSON.stringify(['Certified Banking & Financial Crimes Specialist (2026)']),
+    },
+  });
+
   // 5. Enterprise Subjects
   const subjectAML = await prisma.subject.upsert({
     where: { id: 'subj-aml-compliance-01' },
