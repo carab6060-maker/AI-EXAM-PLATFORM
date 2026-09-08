@@ -53,13 +53,17 @@ export async function POST(req: NextRequest) {
 
     const token = signToken(sessionPayload);
 
-    await logAudit({
-      session: sessionPayload,
-      action: 'LOGIN',
-      entity: 'USER',
-      entityId: user.id,
-      req,
-    });
+    try {
+      await logAudit({
+        session: sessionPayload,
+        action: 'LOGIN',
+        entity: 'USER',
+        entityId: user.id,
+        req,
+      });
+    } catch (auditErr) {
+      console.warn('Audit logging skipped or failed:', auditErr);
+    }
 
     const response = NextResponse.json({
       success: true,
@@ -88,7 +92,10 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error: any) {
-    console.error('Login error:', error);
-    return NextResponse.json({ error: 'Internal server error during login' }, { status: 500 });
+    console.error('Login error details:', error);
+    const errorMessage = error?.message?.includes('database') || error?.message?.includes('Prisma')
+      ? 'Database connection error. Please verify DATABASE_URL and run prisma migrations/seed.'
+      : (error?.message || 'Internal server error during login');
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
