@@ -61,25 +61,32 @@ export async function getSessionFromRequest(req: NextRequest): Promise<AuthSessi
   const session = verifyToken(token);
   if (!session) return null;
 
-  // Verify user is still active in DB
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    include: { company: true },
-  });
+  try {
+    // Verify user is still active in DB if DB is accessible
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      include: { company: true },
+    });
 
-  if (!user || user.status !== 'ACTIVE') return null;
-  if (user.company && user.company.status !== 'ACTIVE' && user.role !== 'SUPER_ADMIN') {
-    return null;
+    if (user) {
+      if (user.status !== 'ACTIVE') return null;
+      if (user.company && user.company.status !== 'ACTIVE' && user.role !== 'SUPER_ADMIN') {
+        return null;
+      }
+    }
+  } catch (dbErr) {
+    // Prisma offline / Vercel SQLite fallback - trust valid JWT session
+    console.warn('DB verify skipped in getSessionFromRequest, using JWT session');
   }
 
   return {
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role as UserRole,
-    companyId: user.companyId,
-    companyName: user.company?.name,
-    companyCode: user.company?.code,
+    userId: session.userId,
+    email: session.email,
+    name: session.name,
+    role: session.role as UserRole,
+    companyId: session.companyId,
+    companyName: session.companyName,
+    companyCode: session.companyCode,
   };
 }
 

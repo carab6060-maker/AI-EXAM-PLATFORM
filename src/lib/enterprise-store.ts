@@ -1,0 +1,285 @@
+// Enterprise Resilient Data Layer with Somali Companies & Staff
+
+export interface ResilientUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  status: string;
+  avatar: string;
+  companyId: string | null;
+  company?: any;
+  employeeProfile?: any;
+}
+
+export const SOMALI_COMPANIES = [
+  {
+    id: 'comp-dahabshiil-01',
+    name: 'Dahabshiil Bank International',
+    code: 'DAHAB',
+    email: 'contact@dahabshiil.so',
+    phone: '+252 (61) 555-4010',
+    address: 'Maka Al-Mukarama Street, Hodan District, Mogadishu, Somalia',
+    website: 'https://dahabshiil.so.demo',
+    industry: 'Banking & Financial Services',
+    registrationNo: 'SOM-MOG-2015-8841',
+    status: 'ACTIVE',
+    plan: 'ENTERPRISE',
+    logo: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=120',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'comp-banadir-02',
+    name: 'Banadir Health & Medical Center',
+    code: 'BANADIR',
+    email: 'hr@banadirhealth.so',
+    phone: '+252 (61) 888-2920',
+    address: 'Digfeer Road, Warta Nabada District, Mogadishu, Somalia',
+    website: 'https://banadirhealth.so.demo',
+    industry: 'Healthcare & Hospital Systems',
+    registrationNo: 'SOM-MED-99420',
+    status: 'ACTIVE',
+    plan: 'ENTERPRISE',
+    logo: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=120',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'comp-hormuud-03',
+    name: 'Hormuud Telecom & Cloud Solutions',
+    code: 'HORMUUD',
+    email: 'enterprise@hormuud.so',
+    phone: '+252 (61) 777-9000',
+    address: 'KPP Junction, KM4 Area, Mogadishu, Somalia',
+    website: 'https://hormuud.so.demo',
+    industry: 'Telecommunications & Cloud Technology',
+    registrationNo: 'SOM-TEL-77412',
+    status: 'ACTIVE',
+    plan: 'ENTERPRISE',
+    logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=120',
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export const SOMALI_USERS: ResilientUser[] = [
+  {
+    id: 'usr-super-admin-01',
+    email: 'superadmin@platform.com',
+    name: 'Guled Abdi Warsame',
+    role: 'SUPER_ADMIN',
+    status: 'ACTIVE',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    companyId: null,
+  },
+  {
+    id: 'usr-dahab-admin-01',
+    email: 'admin@dahabshiil.so',
+    name: 'Fadumo Ahmed Ali',
+    role: 'COMPANY_ADMIN',
+    status: 'ACTIVE',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
+    companyId: 'comp-dahabshiil-01',
+    company: SOMALI_COMPANIES[0],
+    employeeProfile: {
+      employeeId: 'EMP-DBI-0001',
+      phone: '+252 (61) 500-1122',
+      skillsJson: JSON.stringify(['Executive Leadership', 'Corporate Banking', 'Risk Governance']),
+    },
+  },
+  {
+    id: 'usr-staff-ahmed-01',
+    email: 'ahmed.k@dahabshiil.so',
+    name: 'Ahmed Hassan Nur',
+    role: 'EMPLOYEE',
+    status: 'ACTIVE',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    companyId: 'comp-dahabshiil-01',
+    company: SOMALI_COMPANIES[0],
+    employeeProfile: {
+      employeeId: 'EMP-DBI-1042',
+      phone: '+252 (61) 523-4567',
+      skillsJson: JSON.stringify(['Financial Modeling', 'Treasury Reconciliation', 'Tax Compliance', 'Oracle ERP']),
+      certificationsJson: JSON.stringify(['CPA Certified (2023)', 'IFRS Banking Specialist']),
+    },
+  },
+  {
+    id: 'usr-staff-deeqa-02',
+    email: 'deeqa.m@dahabshiil.so',
+    name: 'Deeqa Mohamed Jama',
+    role: 'EMPLOYEE',
+    status: 'ACTIVE',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150',
+    companyId: 'comp-dahabshiil-01',
+    company: SOMALI_COMPANIES[0],
+    employeeProfile: {
+      employeeId: 'EMP-DBI-1088',
+      phone: '+252 (61) 589-1234',
+      skillsJson: JSON.stringify(['AML/CFT Due Diligence', 'Sanctions Screening', 'Regulatory Reporting']),
+      certificationsJson: JSON.stringify(['Certified Anti-Money Laundering Specialist (ACAMS)']),
+    },
+  },
+  {
+    id: 'usr-banadir-admin-01',
+    email: 'hr@banadirhealth.so',
+    name: 'Dr. Mohamed Ali Warsame',
+    role: 'COMPANY_ADMIN',
+    status: 'ACTIVE',
+    avatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150',
+    companyId: 'comp-banadir-02',
+    company: SOMALI_COMPANIES[1],
+  },
+  {
+    id: 'usr-hormuud-admin-01',
+    email: 'enterprise@hormuud.so',
+    name: 'Abdirahman Yusuf Egal',
+    role: 'COMPANY_ADMIN',
+    status: 'ACTIVE',
+    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150',
+    companyId: 'comp-hormuud-03',
+    company: SOMALI_COMPANIES[2],
+  },
+];
+
+export const SOMALI_SUBJECTS = [
+  {
+    id: 'subj-aml-compliance-01',
+    companyId: 'comp-dahabshiil-01',
+    code: 'FIN-AML-101',
+    name: 'Anti-Money Laundering (AML) & CFT Compliance',
+    description: 'Comprehensive regulatory framework, suspicious activity reporting (SAR), and international sanction compliance standards.',
+    category: 'Financial Regulation',
+    status: 'ACTIVE',
+    _count: { questions: 12, exams: 2 },
+  },
+  {
+    id: 'subj-cyber-security-01',
+    companyId: 'comp-dahabshiil-01',
+    code: 'SEC-ZERO-202',
+    name: 'Zero-Trust Cybersecurity & Information Protection',
+    description: 'Enterprise threat detection, multi-factor credential governance, phishing defense, and customer data privacy compliance.',
+    category: 'Information Security',
+    status: 'ACTIVE',
+    _count: { questions: 15, exams: 1 },
+  },
+  {
+    id: 'subj-customer-due-01',
+    companyId: 'comp-dahabshiil-01',
+    code: 'OPS-KYC-301',
+    name: 'Customer Due Diligence (CDD & KYC) Operations',
+    description: 'Customer onboarding identification, beneficial ownership verification, PEP screening, and transaction monitoring.',
+    category: 'Banking Operations',
+    status: 'ACTIVE',
+    _count: { questions: 10, exams: 1 },
+  },
+];
+
+export const SOMALI_EXAMS = [
+  {
+    id: 'exam-aml-cert-2026',
+    companyId: 'comp-dahabshiil-01',
+    subjectId: 'subj-aml-compliance-01',
+    subject: SOMALI_SUBJECTS[0],
+    code: 'EXAM-AML-2026',
+    title: 'Annual AML & Financial Crime Risk Certification (2026)',
+    description: 'Mandatory annual enterprise certification evaluating regulatory compliance, KYC/CDD protocols, and suspicious transaction escalation procedures.',
+    instructions: '1. Total Questions: 10.\n2. Passing Threshold: 75%.\n3. Complete within 30 minutes.\n4. AI proctoring and tab-switching monitoring active.',
+    durationMinutes: 30,
+    passScorePercent: 75,
+    totalMarks: 100,
+    questionCount: 10,
+    maxAttempts: 3,
+    status: 'PUBLISHED',
+    isCertEligible: true,
+    _count: { examQuestions: 10, assignments: 18, results: 14 },
+  },
+  {
+    id: 'exam-cyber-cert-2026',
+    companyId: 'comp-dahabshiil-01',
+    subjectId: 'subj-cyber-security-01',
+    subject: SOMALI_SUBJECTS[1],
+    code: 'EXAM-SEC-2026',
+    title: 'Information Security & Zero-Trust Architecture Exam',
+    description: 'Evaluates critical knowledge of credential protection, phishing threat mitigation, data classification, and endpoint compliance.',
+    durationMinutes: 45,
+    passScorePercent: 80,
+    totalMarks: 100,
+    questionCount: 15,
+    maxAttempts: 2,
+    status: 'PUBLISHED',
+    isCertEligible: true,
+    _count: { examQuestions: 15, assignments: 25, results: 21 },
+  },
+];
+
+export const SOMALI_QUESTIONS = [
+  {
+    id: 'q-aml-001',
+    subjectId: 'subj-aml-compliance-01',
+    questionText: 'Under Central Bank anti-money laundering regulations, what is the primary purpose of Customer Due Diligence (CDD)?',
+    type: 'MCQ',
+    difficulty: 'MEDIUM',
+    marks: 10,
+    options: [
+      { id: 'opt-1', optionText: 'To verify customer identity and evaluate potential financial crime risk', isCorrect: true },
+      { id: 'opt-2', optionText: 'To increase monthly banking subscription fees', isCorrect: false },
+      { id: 'opt-3', optionText: 'To automate marketing campaigns for bank loans', isCorrect: false },
+      { id: 'opt-4', optionText: 'To replace internal financial audit checks', isCorrect: false },
+    ],
+  },
+  {
+    id: 'q-aml-002',
+    subjectId: 'subj-aml-compliance-01',
+    questionText: 'When a bank customer conducts structured cash deposits just below the reporting threshold (smurfing), the compliance team must:',
+    type: 'MCQ',
+    difficulty: 'HARD',
+    marks: 10,
+    options: [
+      { id: 'opt-5', optionText: 'File a Suspicious Activity Report (SAR) with the Financial Intelligence Unit (FIU)', isCorrect: true },
+      { id: 'opt-6', optionText: 'Ignore the transactions if the total daily volume is under $10,000', isCorrect: false },
+      { id: 'opt-7', optionText: 'Notify the customer immediately before taking action', isCorrect: false },
+      { id: 'opt-8', optionText: 'Refund the transaction fee to the customer', isCorrect: false },
+    ],
+  },
+  {
+    id: 'q-sec-001',
+    subjectId: 'subj-cyber-security-01',
+    questionText: 'What is the core principle of Zero-Trust Security Architecture in modern financial institutions?',
+    type: 'MCQ',
+    difficulty: 'MEDIUM',
+    marks: 10,
+    options: [
+      { id: 'opt-9', optionText: 'Never Trust, Always Verify all users and devices inside or outside the network', isCorrect: true },
+      { id: 'opt-10', optionText: 'Trust all requests originating from corporate office IP addresses', isCorrect: false },
+      { id: 'opt-11', optionText: 'Disable multi-factor authentication for senior executives', isCorrect: false },
+      { id: 'opt-12', optionText: 'Rely solely on perimeter firewalls for endpoint security', isCorrect: false },
+    ],
+  },
+];
+
+export const SOMALI_CERTIFICATES = [
+  {
+    id: 'cert-dahab-001',
+    certificateNumber: 'DAHAB-CERT-2026-881',
+    verificationCode: 'DAHAB-CERT-2026-881',
+    title: 'Certified AML & Compliance Specialist',
+    recipientName: 'Ahmed Hassan Nur',
+    companyName: 'Dahabshiil Bank International',
+    score: 94.5,
+    grade: 'DISTINCTION',
+    issueDate: new Date('2026-03-01').toISOString(),
+    expiryDate: new Date('2028-03-01').toISOString(),
+    status: 'ACTIVE',
+  },
+  {
+    id: 'cert-dahab-002',
+    certificateNumber: 'DAHAB-CERT-2026-942',
+    verificationCode: 'DAHAB-CERT-2026-942',
+    title: 'Enterprise Cyber Security Practitioner',
+    recipientName: 'Deeqa Mohamed Jama',
+    companyName: 'Dahabshiil Bank International',
+    score: 88.0,
+    grade: 'PASS_WITH_HONORS',
+    issueDate: new Date('2026-02-15').toISOString(),
+    expiryDate: new Date('2028-02-15').toISOString(),
+    status: 'ACTIVE',
+  },
+];
