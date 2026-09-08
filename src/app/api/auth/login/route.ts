@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword, signToken, AuthSession } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
+import { runDatabaseSeed } from '@/lib/seed-runner';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,8 +12,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+    const cleanEmail = email.toLowerCase().trim();
+
+    let user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
       include: {
         company: true,
         employeeProfile: {
@@ -23,6 +26,27 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+
+    // Auto-seed if database has 0 users (e.g. freshly deployed cloud database)
+    if (!user) {
+      const userCount = await prisma.user.count().catch(() => 0);
+      if (userCount === 0) {
+        console.log('Database empty, running initial seed...');
+        await runDatabaseSeed().catch((e) => console.error('Auto-seed failed:', e));
+        user = await prisma.user.findUnique({
+          where: { email: cleanEmail },
+          include: {
+            company: true,
+            employeeProfile: {
+              include: {
+                department: true,
+                position: true,
+              },
+            },
+          },
+        });
+      }
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
