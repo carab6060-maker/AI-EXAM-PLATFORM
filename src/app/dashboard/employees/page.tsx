@@ -3,14 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import {
   Users,
-  Plus,
   Search,
-  FileSpreadsheet,
+  Plus,
+  Upload,
   Download,
   Filter,
-  Check,
-  X,
+  CheckCircle,
+  XCircle,
+  Clock,
   Loader2,
+  X,
+  Check,
   Mail,
   Phone,
   Building,
@@ -32,6 +35,7 @@ export default function EmployeesPage() {
     employeeId: '',
     phone: '',
     role: 'EMPLOYEE',
+    companyId: 'comp-dahabshiil-01',
     skills: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,6 +76,7 @@ export default function EmployeesPage() {
           employeeId: newEmp.employeeId,
           phone: newEmp.phone,
           role: newEmp.role,
+          companyId: newEmp.companyId,
           skills: skillsArray,
         }),
       });
@@ -85,6 +90,7 @@ export default function EmployeesPage() {
           employeeId: '',
           phone: '',
           role: 'EMPLOYEE',
+          companyId: 'comp-dahabshiil-01',
           skills: '',
         });
         fetchEmployees();
@@ -120,58 +126,71 @@ export default function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Employee & Staff Directory</h1>
-          <p className="text-xs text-slate-500 mt-1">Manage employee accounts, qualification history, and examination permissions.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Employee Directory</h1>
+          <p className="text-xs text-slate-500 mt-1">Manage staff across corporate accounts</p>
         </div>
 
-        <div className="flex items-center gap-2 self-start flex-wrap">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCSVModal(true)}
-            className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition flex items-center gap-1.5 shadow-sm"
+            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Import CSV
+            <Upload className="w-3.5 h-3.5" />
+            Import CSV
           </button>
           <button
             onClick={exportToCSV}
-            className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition flex items-center gap-1.5 shadow-sm"
+            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition"
           >
-            <Download className="w-4 h-4 text-slate-500" /> Export
+            <Download className="w-3.5 h-3.5" />
+            Export
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-200 transition flex items-center gap-2"
+            className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-200 transition"
           >
-            <Plus className="w-4 h-4" /> Add Employee
+            <Plus className="w-4 h-4" />
+            Add Employee
           </button>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, email, or employee ID..."
-            className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
-          />
-        </div>
-      </div>
+      {/* Main Table Card */}
+      <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+        {/* Search & Filter Toolbar */}
+        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by name, email, or employee ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+          <div className="text-xs text-slate-500 font-medium">
+            Total Staff: <span className="font-bold text-slate-900">{employees.length}</span>
+          </div>
+        </div>
+
+        {/* Table View */}
         {loading ? (
-          <div className="py-12 text-center text-xs text-slate-400">Loading directory...</div>
+          <div className="p-12 flex justify-center items-center">
+            <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+          </div>
         ) : employees.length === 0 ? (
-          <div className="py-12 text-center text-xs text-slate-400">No employees match your query.</div>
+          <div className="p-12 text-center text-slate-500 text-xs">
+            No employees found matching criteria.
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="p-3">Employee</th>
                   <th className="p-3">Employee ID</th>
@@ -182,21 +201,21 @@ export default function EmployeesPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {employees.map((e) => (
-                  <tr key={e.id} className="hover:bg-slate-50 transition">
+                  <tr key={e.id} className="hover:bg-slate-50/80 transition">
                     <td className="p-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-xs">
                           {e.user.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-bold text-slate-900">{e.user.name}</p>
-                          <p className="text-[11px] text-slate-500">{e.user.email}</p>
+                          <div className="font-bold text-slate-900">{e.user.name}</div>
+                          <div className="text-[11px] text-slate-400">{e.user.email}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="p-3 font-mono text-slate-600 font-bold">{e.employeeId}</td>
+                    <td className="p-3 font-mono font-medium text-slate-600">{e.employeeId}</td>
                     <td className="p-3">
-                      <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full uppercase">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
                         {e.user.role.replace('_', ' ')}
                       </span>
                     </td>
@@ -248,7 +267,7 @@ export default function EmployeesPage() {
                     required
                     value={newEmp.name}
                     onChange={(e) => setNewEmp({ ...newEmp, name: e.target.value })}
-                    placeholder="e.g. Liban Farah Warsame"
+                    placeholder="e.g. Mohamed Abdiaziiz Mohamed"
                     className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
@@ -260,7 +279,7 @@ export default function EmployeesPage() {
                     required
                     value={newEmp.employeeId}
                     onChange={(e) => setNewEmp({ ...newEmp, employeeId: e.target.value })}
-                    placeholder="e.g. EMP-DBI-1099"
+                    placeholder="e.g. EMP-11111"
                     className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
@@ -273,9 +292,22 @@ export default function EmployeesPage() {
                   required
                   value={newEmp.email}
                   onChange={(e) => setNewEmp({ ...newEmp, email: e.target.value })}
-                  placeholder="liban@company.so"
+                  placeholder="carab6060@gmail.com"
                   className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Assigned Organization / Company *</label>
+                <select
+                  value={newEmp.companyId}
+                  onChange={(e) => setNewEmp({ ...newEmp, companyId: e.target.value })}
+                  className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="comp-dahabshiil-01">Dahabshiil Bank International</option>
+                  <option value="comp-banadir-02">Banadir Health & Medical Center</option>
+                  <option value="comp-hormuud-03">Hormuud Telecom & Cloud Solutions</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -300,7 +332,7 @@ export default function EmployeesPage() {
                     type="text"
                     value={newEmp.phone}
                     onChange={(e) => setNewEmp({ ...newEmp, phone: e.target.value })}
-                    placeholder="+252 (61) 000-0000"
+                    placeholder="+252 (61) 999-0999"
                     className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
@@ -314,29 +346,6 @@ export default function EmployeesPage() {
                   onChange={(e) => setNewEmp({ ...newEmp, password: e.target.value })}
                   className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number</label>
-                  <input
-                    type="text"
-                    value={newEmp.phone}
-                    onChange={(e) => setNewEmp({ ...newEmp, phone: e.target.value })}
-                    placeholder="+1 (555) 000-0000"
-                    className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Password</label>
-                  <input
-                    type="text"
-                    value={newEmp.password}
-                    onChange={(e) => setNewEmp({ ...newEmp, password: e.target.value })}
-                    className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                </div>
               </div>
 
               <div className="pt-4 flex justify-end gap-2">
