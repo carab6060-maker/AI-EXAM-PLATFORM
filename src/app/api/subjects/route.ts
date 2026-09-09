@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { getSessionFromRequest, hasPermission } from '@/lib/auth';
 import { unauthorizedResponse, forbiddenResponse, tenantScopedWhere } from '@/lib/tenant';
 import { logAudit } from '@/lib/audit';
-import { SOMALI_SUBJECTS } from '@/lib/enterprise-store';
 
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -26,15 +25,11 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (subjects && subjects.length > 0) {
-      return NextResponse.json({ subjects });
-    }
-  } catch (err) {
-    console.warn('Prisma subjects query fallback:', err);
+    return NextResponse.json({ subjects: subjects || [] });
+  } catch (err: any) {
+    console.error('Prisma subjects query error:', err);
+    return NextResponse.json({ error: 'Failed to retrieve subjects from database', details: err?.message }, { status: 500 });
   }
-
-  // Resilient fallback
-  return NextResponse.json({ subjects: SOMALI_SUBJECTS });
 }
 
 export async function POST(req: NextRequest) {
@@ -53,6 +48,13 @@ export async function POST(req: NextRequest) {
   const cleanCode = code.toUpperCase().trim();
 
   try {
+    const existing = await prisma.subject.findUnique({
+      where: { companyId_code: { companyId, code: cleanCode } },
+    });
+    if (existing) {
+      return NextResponse.json({ error: 'A subject with this code already exists in your company' }, { status: 409 });
+    }
+
     const subject = await prisma.subject.create({
       data: {
         companyId,
@@ -87,18 +89,8 @@ export async function POST(req: NextRequest) {
     } catch (e) {}
 
     return NextResponse.json({ subject }, { status: 201 });
-  } catch (err) {
-    const mockSubj = {
-      id: `subj-${Date.now()}`,
-      companyId,
-      name,
-      code: cleanCode,
-      description,
-      category: category || 'General',
-      difficulty: difficulty || 'INTERMEDIATE',
-      topics: (topics || []).map((t: string) => ({ name: t })),
-      _count: { questions: 0, exams: 0 },
-    };
-    return NextResponse.json({ subject: mockSubj }, { status: 201 });
+  } catch (err: any) {
+    console.error('Error creating subject in database:', err);
+    return NextResponse.json({ error: err?.message || 'Failed to create subject in database' }, { status: 500 });
   }
 }

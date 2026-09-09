@@ -8,27 +8,35 @@ async function main() {
 
   // Clean existing records if any
   try {
-    await prisma.attemptAnswer.deleteMany();
-    await prisma.certificate.deleteMany();
-    await prisma.aIAnalysis.deleteMany();
-    await prisma.trainingRecommendation.deleteMany();
-    await prisma.result.deleteMany();
-    await prisma.examAttempt.deleteMany();
-    await prisma.examAssignment.deleteMany();
-    await prisma.examQuestion.deleteMany();
-    await prisma.questionOption.deleteMany();
-    await prisma.question.deleteMany();
-    await prisma.topic.deleteMany();
-    await prisma.exam.deleteMany();
-    await prisma.subject.deleteMany();
-    await prisma.employeeProfile.deleteMany();
-    await prisma.position.deleteMany();
-    await prisma.team.deleteMany();
-    await prisma.department.deleteMany();
-    await prisma.notification.deleteMany();
-    await prisma.auditLog.deleteMany();
-    await prisma.user.deleteMany();
-    await prisma.company.deleteMany();
+    await prisma.assessmentSubmission.deleteMany().catch(() => {});
+    await prisma.assessment.deleteMany().catch(() => {});
+    await prisma.trainingEnrollment.deleteMany().catch(() => {});
+    await prisma.trainingCourse.deleteMany().catch(() => {});
+    await prisma.userRole.deleteMany().catch(() => {});
+    await prisma.rolePermission.deleteMany().catch(() => {});
+    await prisma.permission.deleteMany().catch(() => {});
+    await prisma.role.deleteMany().catch(() => {});
+    await prisma.attemptAnswer.deleteMany().catch(() => {});
+    await prisma.certificate.deleteMany().catch(() => {});
+    await prisma.aIAnalysis.deleteMany().catch(() => {});
+    await prisma.trainingRecommendation.deleteMany().catch(() => {});
+    await prisma.result.deleteMany().catch(() => {});
+    await prisma.examAttempt.deleteMany().catch(() => {});
+    await prisma.examAssignment.deleteMany().catch(() => {});
+    await prisma.examQuestion.deleteMany().catch(() => {});
+    await prisma.questionOption.deleteMany().catch(() => {});
+    await prisma.question.deleteMany().catch(() => {});
+    await prisma.topic.deleteMany().catch(() => {});
+    await prisma.exam.deleteMany().catch(() => {});
+    await prisma.subject.deleteMany().catch(() => {});
+    await prisma.employeeProfile.deleteMany().catch(() => {});
+    await prisma.position.deleteMany().catch(() => {});
+    await prisma.team.deleteMany().catch(() => {});
+    await prisma.department.deleteMany().catch(() => {});
+    await prisma.notification.deleteMany().catch(() => {});
+    await prisma.auditLog.deleteMany().catch(() => {});
+    await prisma.user.deleteMany().catch(() => {});
+    await prisma.company.deleteMany().catch(() => {});
   } catch (e) {
     console.log('Initial clean skipped or table does not exist yet');
   }
@@ -602,6 +610,114 @@ async function main() {
     },
   });
 
+  // 10. Seed System Roles & Permissions
+  console.log('🌱 Seeding Roles, Permissions, Training Courses, and Assessments...');
+  const permissionsList = [
+    { code: 'exams.create', name: 'Create Exams', category: 'EXAMS', description: 'Can design and publish new exams' },
+    { code: 'exams.grade', name: 'Grade & Review Exams', category: 'EXAMS', description: 'Can manually evaluate essays and review attempts' },
+    { code: 'employees.manage', name: 'Manage Staff', category: 'EMPLOYEES', description: 'Can invite, edit, and deactivate employees' },
+    { code: 'certs.issue', name: 'Issue Certificates', category: 'CERTIFICATES', description: 'Can generate and sign verified credentials' },
+    { code: 'training.manage', name: 'Manage Training', category: 'TRAINING', description: 'Can create and assign training roadmaps' },
+    { code: 'system.audit', name: 'View Audit Trail', category: 'SYSTEM', description: 'Can review security logs and user activities' },
+  ];
+
+  for (const perm of permissionsList) {
+    await prisma.permission.upsert({
+      where: { code: perm.code },
+      update: {},
+      create: perm,
+    });
+  }
+
+  const companyAdminRole = await prisma.role.create({
+    data: {
+      companyId: dahabshiilCompany.id,
+      name: 'COMPANY_ADMIN',
+      description: 'Full organizational administrative control over company tenant',
+      isSystem: true,
+    },
+  });
+
+  const employeeRole = await prisma.role.create({
+    data: {
+      companyId: dahabshiilCompany.id,
+      name: 'EMPLOYEE',
+      description: 'Standard staff member with exam taking and cert access',
+      isSystem: true,
+    },
+  });
+
+  // Assign user roles
+  await prisma.userRole.create({
+    data: {
+      userId: dahabAdmin.id,
+      roleId: companyAdminRole.id,
+    },
+  });
+
+  await prisma.userRole.create({
+    data: {
+      userId: employeeAhmed.id,
+      roleId: employeeRole.id,
+    },
+  });
+
+  // 11. Seed Training Course & Enrollment
+  const course1 = await prisma.trainingCourse.create({
+    data: {
+      companyId: dahabshiilCompany.id,
+      title: 'Corporate Financial Risk & Anti-Fraud Compliance 2026',
+      code: 'TRN-FIN-001',
+      description: 'Comprehensive enterprise training course on financial controls, AML compliance, and audit reconciliation.',
+      category: 'Finance & Compliance',
+      difficulty: 'INTERMEDIATE',
+      durationHours: 12.5,
+      status: 'PUBLISHED',
+      createdById: dahabAdmin.id,
+      syllabusJson: JSON.stringify([
+        { module: 1, title: 'AML & Know Your Customer (KYC) Regulations', hours: 3 },
+        { module: 2, title: 'Suspense Account Controls & Daily Bank Reconciliation', hours: 4.5 },
+        { module: 3, title: 'Variance Analysis & Dynamic Forecasting in ERP', hours: 5 },
+      ]),
+    },
+  });
+
+  await prisma.trainingEnrollment.create({
+    data: {
+      companyId: dahabshiilCompany.id,
+      courseId: course1.id,
+      userId: employeeAhmed.id,
+      status: 'IN_PROGRESS',
+      progressPercent: 65.0,
+      score: 88.5,
+    },
+  });
+
+  // 12. Seed Assessment & Submission
+  const assessment1 = await prisma.assessment.create({
+    data: {
+      companyId: dahabshiilCompany.id,
+      title: 'Senior Financial Analyst Competency Assessment',
+      code: 'ASM-FIN-2026',
+      description: 'Annual skills evaluation assessing ledger auditing, cash control, and budget forecasting accuracy.',
+      type: 'PROMOTION',
+      passingScore: 75.0,
+      status: 'ACTIVE',
+      examId: exam.id,
+    },
+  });
+
+  await prisma.assessmentSubmission.create({
+    data: {
+      assessmentId: assessment1.id,
+      userId: employeeAhmed.id,
+      score: 88.89,
+      isPassed: true,
+      feedback: 'Outstanding technical score in cash reconciliations and treasury governance.',
+    },
+  });
+
+  console.log('✅ Roles, Permissions, Training Courses, and Assessments seeded successfully');
   console.log('✅ Sample Exam, Attempt, Result, AI Analysis & Certificate created for Ahmed Hassan Nur');
   console.log('🎉 Enterprise Seed Completed Successfully!');
 }

@@ -3,162 +3,144 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Loader2, Shield } from 'lucide-react';
+
+const DEMO_ACCOUNTS = [
+  { label: 'Company Admin', email: 'admin@dahabshiil.so', pass: 'Password123!', color: '#3B82F6' },
+  { label: 'Employee', email: 'ahmed.k@dahabshiil.so', pass: 'Password123!', color: '#10B981' },
+  { label: 'Super Admin', email: 'superadmin@platform.com', pass: 'SuperAdmin123!', color: '#8B5CF6' },
+];
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('admin@dahabshiil.so');
   const [password, setPassword] = useState('Password123!');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setErrorMessage('');
-
+    setError('');
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Authentication failed');
-      }
-
+      if (!res.ok) throw new Error(data.error || 'Authentication failed');
       router.push('/dashboard');
       router.refresh();
     } catch (err: any) {
-      setErrorMessage(err.message || 'Login error occurred');
+      setError(err.message || 'Login error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const setDemoUser = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setErrorMessage('');
-  };
-
   return (
-    <div className="min-h-screen bg-[#070D1E] flex flex-col justify-center items-center p-4 selection:bg-blue-500 selection:text-white">
-      <div className="w-full max-w-md space-y-6">
-        {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white mx-auto flex items-center justify-center shadow-lg shadow-blue-600/20">
-            <Shield className="w-6 h-6" />
+    <div style={{ minHeight: '100vh', background: '#EEF2F9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+
+      {/* Main Login Card */}
+      <div style={{ background: '#fff', borderRadius: '18px', padding: '40px 36px', width: '100%', maxWidth: '400px', boxShadow: '0 4px 32px rgba(0,0,0,0.10)', border: '1px solid #E2E8F0' }}>
+
+        {/* Logo & Brand */}
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '16px', background: 'linear-gradient(135deg, #3B82F6, #6366F1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 6px 20px rgba(59,130,246,0.3)' }}>
+            <Shield size={28} color="white" />
           </div>
-          <h2 className="text-2xl font-black text-white tracking-tight">Enterprise Sign In</h2>
-          <p className="text-xs text-slate-400">Access your organization's examination and certification portal</p>
+          <h1 style={{ fontSize: '19px', fontWeight: 800, color: '#1E293B', margin: '0 0 4px', letterSpacing: '-0.3px' }}>ExamPlatform</h1>
+          <p style={{ fontSize: '12px', color: '#94A3B8', margin: 0, fontWeight: 500 }}>Powered by Mohamed Abdiaziiz Mohamed</p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-[#0D182E] border border-slate-800 rounded-2xl p-8 shadow-2xl">
-          {errorMessage && (
-            <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-xl">
-              {errorMessage}
-            </div>
-          )}
+        {/* Error */}
+        {error && (
+          <div style={{ marginBottom: '16px', padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '9px', fontSize: '12px', color: '#DC2626', fontWeight: 500 }}>
+            {error}
+          </div>
+        )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Corporate Email Address</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.so"
-                  className="w-full text-xs font-medium bg-[#070D1E] border border-slate-700/80 text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                />
-              </div>
+        <form onSubmit={handleLogin}>
+          {/* Email */}
+          <div style={{ marginBottom: '14px' }}>
+            <label htmlFor="login-email" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Email Address</label>
+            <div style={{ position: 'relative' }}>
+              <Mail size={15} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              <input
+                id="login-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@company.so"
+                style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '9px', padding: '11px 14px 11px 36px', fontSize: '13px', fontWeight: 500, color: '#1E293B', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+              />
             </div>
+          </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-slate-300">Password</label>
-              </div>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full text-xs font-medium bg-[#070D1E] border border-slate-700/80 text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                />
-              </div>
+          {/* Password */}
+          <div style={{ marginBottom: '22px' }}>
+            <label htmlFor="login-password" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Password</label>
+            <div style={{ position: 'relative' }}>
+              <Lock size={15} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              <input
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '9px', padding: '11px 40px 11px 36px', fontSize: '13px', fontWeight: 500, color: '#1E293B', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+              />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', padding: 0 }}>
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
             </div>
+          </div>
 
+          {/* Submit */}
+          <button
+            id="login-submit"
+            type="submit"
+            disabled={isLoading}
+            style={{ width: '100%', background: isLoading ? '#93C5FD' : '#3B82F6', color: '#fff', border: 'none', borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: 700, cursor: isLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', letterSpacing: '0.1px', boxShadow: '0 2px 8px rgba(59,130,246,0.3)' }}
+          >
+            {isLoading ? (
+              <><Loader2 size={16} style={{ animation: 'nsLoginSpin 1s linear infinite' }} /> Signing in...</>
+            ) : 'Sign In'}
+          </button>
+        </form>
+
+        {/* Footer link */}
+        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '11px', color: '#94A3B8', fontWeight: 500 }}>
+          Powered by <span style={{ color: '#3B82F6', fontWeight: 600 }}>Mohamed Abdiaziiz Mohamed</span>
+        </p>
+      </div>
+
+      {/* Demo Switcher */}
+      <div style={{ marginTop: '16px', background: '#fff', borderRadius: '14px', padding: '14px 18px', width: '100%', maxWidth: '400px', border: '1px solid #E2E8F0', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+        <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px', textAlign: 'center', margin: '0 0 10px' }}>
+          Quick Demo Access
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+          {DEMO_ACCOUNTS.map((d) => (
             <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition duration-150 flex items-center justify-center gap-2 disabled:opacity-50"
+              key={d.email}
+              type="button"
+              onClick={() => { setEmail(d.email); setPassword(d.pass); setError(''); }}
+              style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '9px', padding: '9px 10px', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.15s' }}
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Authenticating Session...
-                </>
-              ) : (
-                <>
-                  Sign In to Portal <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+              <div style={{ fontSize: '10px', fontWeight: 700, color: d.color, marginBottom: '2px' }}>{d.label}</div>
+              <div style={{ fontSize: '9px', color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.email.split('@')[0]}</div>
             </button>
-          </form>
-
-          {/* Quick Demo Switcher */}
-          <div className="mt-8 pt-6 border-t border-slate-800">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center mb-3">
-              Quick 1-Click Role Switcher (Demo Accounts)
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setDemoUser('admin@dahabshiil.so', 'Password123!')}
-                className="p-2.5 bg-[#070D1E] border border-slate-800 hover:border-blue-500 rounded-xl text-left transition group"
-              >
-                <p className="text-[11px] font-bold text-slate-200 group-hover:text-blue-400">Company Admin</p>
-                <p className="text-[9px] text-slate-400 truncate">Fadumo Ahmed (Dahabshiil)</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setDemoUser('ahmed.k@dahabshiil.so', 'Password123!')}
-                className="p-2.5 bg-[#070D1E] border border-slate-800 hover:border-blue-500 rounded-xl text-left transition group"
-              >
-                <p className="text-[11px] font-bold text-slate-200 group-hover:text-blue-400">Staff Employee</p>
-                <p className="text-[9px] text-slate-400 truncate">Ahmed Hassan (Accountant)</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setDemoUser('superadmin@platform.com', 'SuperAdmin123!')}
-                className="p-2.5 bg-[#070D1E] border border-slate-800 hover:border-blue-500 rounded-xl text-left transition group"
-              >
-                <p className="text-[11px] font-bold text-slate-200 group-hover:text-blue-400">Super Admin</p>
-                <p className="text-[9px] text-slate-400 truncate">Guled Abdi (Platform)</p>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-center space-y-2 text-xs text-slate-500">
-          <p>
-            Public Certificate Check:{' '}
-            <Link href="/verify/CERT-DAHAB-2026-00042" className="text-slate-400 hover:text-slate-300 underline">
-              Verify Credential
-            </Link>
-          </p>
+          ))}
         </div>
       </div>
+
+      <style>{`@keyframes nsLoginSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
+

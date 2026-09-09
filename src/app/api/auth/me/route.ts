@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 import { unauthorizedResponse } from '@/lib/tenant';
 import { prisma } from '@/lib/prisma';
-import { SOMALI_USERS, SOMALI_COMPANIES } from '@/lib/enterprise-store';
 
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -10,10 +9,8 @@ export async function GET(req: NextRequest) {
     return unauthorizedResponse();
   }
 
-  let user: any = null;
-
   try {
-    user = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: session.userId },
       include: {
         company: true,
@@ -26,45 +23,24 @@ export async function GET(req: NextRequest) {
         },
       },
     });
-  } catch (err) {
-    // Fallback if DB offline
-  }
 
-  if (!user) {
-    const fallbackUser = SOMALI_USERS.find(
-      (u) => u.id === session.userId || u.email.toLowerCase() === session.email.toLowerCase()
-    );
-
-    if (fallbackUser) {
-      user = {
-        ...fallbackUser,
-        company: fallbackUser.company || SOMALI_COMPANIES.find((c) => c.id === fallbackUser.companyId),
-      };
-    } else {
-      user = {
-        id: session.userId,
-        email: session.email,
-        name: session.name,
-        role: session.role,
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-        company: {
-          id: session.companyId || 'comp-01',
-          name: session.companyName || 'Enterprise Organization',
-          code: session.companyCode || 'CORP',
-        },
-      };
+    if (!user) {
+      return NextResponse.json({ error: 'User record not found in database' }, { status: 404 });
     }
-  }
 
-  return NextResponse.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      avatar: user.avatar,
-      company: user.company,
-      profile: user.employeeProfile,
-    },
-  });
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatar: user.avatar,
+        company: user.company,
+        profile: user.employeeProfile,
+      },
+    });
+  } catch (err: any) {
+    console.error('Error in /api/auth/me:', err);
+    return NextResponse.json({ error: 'Failed to retrieve user profile from database' }, { status: 500 });
+  }
 }

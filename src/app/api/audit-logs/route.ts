@@ -17,15 +17,20 @@ export async function GET(req: NextRequest) {
   if (action) where.action = action;
   if (entity) where.entity = entity;
 
-  const logs = await prisma.auditLog.findMany({
-    where,
-    take: 100,
-    orderBy: { createdAt: 'desc' },
-    include: {
-      user: { select: { name: true, email: true, role: true } },
-      company: { select: { name: true, code: true } },
-    },
-  });
+  try {
+    const logs = await prisma.auditLog.findMany({
+      where,
+      take: 100,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { name: true, email: true, role: true } },
+        company: { select: { name: true, code: true } },
+      },
+    });
 
-  return NextResponse.json({ logs });
+    return NextResponse.json({ logs: logs || [] });
+  } catch (err: any) {
+    console.error('Error fetching audit logs:', err);
+    return NextResponse.json({ error: 'Failed to retrieve audit trail', details: err?.message }, { status: 500 });
+  }
 }

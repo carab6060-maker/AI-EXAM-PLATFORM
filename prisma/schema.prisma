@@ -1,14 +1,18 @@
-// Prisma Schema for Multi-Tenant Enterprise AI Exam & Certification Platform
+// Prisma Schema for Multi-Tenant Enterprise AI Exam & Certification Platform (Neon PostgreSQL Production)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
+// ---------------------------------------------------------
+// 1. ORGANIZATIONS / COMPANIES (Multi-Tenant Root)
+// ---------------------------------------------------------
 model Company {
   id              String           @id @default(cuid())
   name            String
@@ -25,23 +29,33 @@ model Company {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  users           User[]
-  departments     Department[]
-  positions       Position[]
-  employeeProfiles EmployeeProfile[]
-  subjects        Subject[]
-  questions       Question[]
-  exams           Exam[]
-  examAssignments ExamAssignment[]
-  examAttempts    ExamAttempt[]
-  results         Result[]
-  certificates    Certificate[]
-  aiAnalyses      AIAnalysis[]
+  users                   User[]
+  departments             Department[]
+  positions               Position[]
+  employeeProfiles        EmployeeProfile[]
+  subjects                Subject[]
+  questions               Question[]
+  exams                   Exam[]
+  examAssignments         ExamAssignment[]
+  examAttempts            ExamAttempt[]
+  results                 Result[]
+  certificates            Certificate[]
+  aiAnalyses              AIAnalysis[]
   trainingRecommendations TrainingRecommendation[]
-  notifications   Notification[]
-  auditLogs       AuditLog[]
+  trainingCourses         TrainingCourse[]
+  trainingEnrollments     TrainingEnrollment[]
+  assessments             Assessment[]
+  roles                   Role[]
+  notifications           Notification[]
+  auditLogs               AuditLog[]
+
+  @@index([status])
+  @@index([code])
 }
 
+// ---------------------------------------------------------
+// 2. USERS, ROLES & PERMISSIONS (RBAC & Auth)
+// ---------------------------------------------------------
 model User {
   id              String           @id @default(cuid())
   companyId       String?
@@ -55,19 +69,86 @@ model User {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  employeeProfile EmployeeProfile?
-  createdSubjects Subject[]        @relation("SubjectCreator")
-  createdQuestions Question[]      @relation("QuestionCreator")
-  createdExams    Exam[]           @relation("ExamCreator")
-  examAttempts    ExamAttempt[]
-  results         Result[]
-  certificates    Certificate[]
-  aiAnalyses      AIAnalysis[]
+  employeeProfile         EmployeeProfile?
+  createdSubjects         Subject[]                 @relation("SubjectCreator")
+  createdQuestions        Question[]                @relation("QuestionCreator")
+  createdExams            Exam[]                    @relation("ExamCreator")
+  examAttempts            ExamAttempt[]
+  results                 Result[]
+  certificates            Certificate[]
+  aiAnalyses              AIAnalysis[]
   trainingRecommendations TrainingRecommendation[]
-  notifications   Notification[]
-  auditLogs       AuditLog[]
+  trainingEnrollments     TrainingEnrollment[]
+  assessmentSubmissions   AssessmentSubmission[]
+  userRoles               UserRole[]
+  notifications           Notification[]
+  auditLogs               AuditLog[]
+
+  @@index([companyId])
+  @@index([email])
+  @@index([role])
+  @@index([status])
 }
 
+model Role {
+  id          String           @id @default(cuid())
+  companyId   String?
+  company     Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String           // SUPER_ADMIN, COMPANY_ADMIN, HR_MANAGER, TRAINING_MANAGER, EXAMINER, EMPLOYEE
+  description String?
+  isSystem    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  permissions RolePermission[]
+  userRoles   UserRole[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  code        String           @unique // e.g. exams.create, exams.grade, employees.manage, certs.issue
+  name        String
+  category    String           // EXAMS, EMPLOYEES, CERTIFICATES, SYSTEM, TRAINING, REPORTS
+  description String?
+  createdAt   DateTime         @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@index([category])
+  @@index([code])
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+model UserRole {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId     String
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+// ---------------------------------------------------------
+// 3. EMPLOYEES, ORG STRUCTURE & DEPARTMENTS
+// ---------------------------------------------------------
 model Department {
   id              String           @id @default(cuid())
   companyId       String
@@ -86,6 +167,7 @@ model Department {
   examAssignments ExamAssignment[]
 
   @@unique([companyId, code])
+  @@index([companyId])
 }
 
 model Team {
@@ -99,6 +181,8 @@ model Team {
 
   employeeProfiles EmployeeProfile[]
   examAssignments ExamAssignment[]
+
+  @@index([departmentId])
 }
 
 model Position {
@@ -113,6 +197,9 @@ model Position {
 
   employeeProfiles EmployeeProfile[]
   examAssignments ExamAssignment[]
+
+  @@index([companyId])
+  @@index([departmentId])
 }
 
 model EmployeeProfile {
@@ -139,8 +226,14 @@ model EmployeeProfile {
   examAssignments    ExamAssignment[]
 
   @@unique([companyId, employeeId])
+  @@index([companyId])
+  @@index([userId])
+  @@index([departmentId])
 }
 
+// ---------------------------------------------------------
+// 4. SUBJECTS, TOPICS, QUESTIONS & OPTIONS
+// ---------------------------------------------------------
 model Subject {
   id              String           @id @default(cuid())
   companyId       String
@@ -163,6 +256,8 @@ model Subject {
   exams           Exam[]
 
   @@unique([companyId, code])
+  @@index([companyId])
+  @@index([status])
 }
 
 model Topic {
@@ -174,6 +269,8 @@ model Topic {
   createdAt       DateTime         @default(now())
 
   questions       Question[]
+
+  @@index([subjectId])
 }
 
 model Question {
@@ -202,6 +299,12 @@ model Question {
   options         QuestionOption[]
   examQuestions   ExamQuestion[]
   attemptAnswers  AttemptAnswer[]
+
+  @@index([companyId])
+  @@index([subjectId])
+  @@index([topicId])
+  @@index([difficulty])
+  @@index([status])
 }
 
 model QuestionOption {
@@ -211,8 +314,13 @@ model QuestionOption {
   optionText      String
   isCorrect       Boolean          @default(false)
   orderIndex      Int              @default(0)
+
+  @@index([questionId])
 }
 
+// ---------------------------------------------------------
+// 5. EXAMS, ASSIGNMENTS & ATTEMPTS
+// ---------------------------------------------------------
 model Exam {
   id                  String           @id @default(cuid())
   companyId           String
@@ -250,8 +358,12 @@ model Exam {
   attempts            ExamAttempt[]
   results             Result[]
   certificates        Certificate[]
+  assessments         Assessment[]
 
   @@unique([companyId, code])
+  @@index([companyId])
+  @@index([subjectId])
+  @@index([status])
 }
 
 model ExamQuestion {
@@ -262,6 +374,9 @@ model ExamQuestion {
   question        Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
   orderIndex      Int              @default(0)
   marks           Float            @default(1.0)
+
+  @@index([examId])
+  @@index([questionId])
 }
 
 model ExamAssignment {
@@ -282,6 +397,11 @@ model ExamAssignment {
   assignedAt      DateTime         @default(now())
   dueDate         DateTime?
   status          String           @default("ASSIGNED") // ASSIGNED, IN_PROGRESS, COMPLETED, EXPIRED
+
+  @@index([companyId])
+  @@index([examId])
+  @@index([employeeProfileId])
+  @@index([departmentId])
 }
 
 model ExamAttempt {
@@ -302,12 +422,17 @@ model ExamAttempt {
   percentage             Float           @default(0.0)
   isPassed               Boolean         @default(false)
   currentQuestionIndex   Int             @default(0)
-  antiCheatIncidentsJson String?         // JSON array of logged incidents (tab switches, exit full screen, etc.)
+  antiCheatIncidentsJson String?         // JSON array of logged incidents
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
 
   answers                AttemptAnswer[]
   result                 Result?
+
+  @@index([companyId])
+  @@index([examId])
+  @@index([userId])
+  @@index([status])
 }
 
 model AttemptAnswer {
@@ -316,15 +441,21 @@ model AttemptAnswer {
   attempt               ExamAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   questionId            String
   question              Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  selectedOptionIdsJson String?         // JSON array of selected Option IDs for MCQ/Multi-select
-  textAnswer            String?         // Text response for short answer / essay
+  selectedOptionIdsJson String?         // JSON array of selected Option IDs
+  textAnswer            String?         // Text response
   isCorrect             Boolean?
   marksEarned           Float           @default(0.0)
   feedback              String?
   isFlaggedForReview    Boolean         @default(false)
   answeredAt            DateTime        @default(now())
+
+  @@index([attemptId])
+  @@index([questionId])
 }
 
+// ---------------------------------------------------------
+// 6. SCORES, RESULTS & CERTIFICATES
+// ---------------------------------------------------------
 model Result {
   id                 String          @id @default(cuid())
   companyId          String
@@ -348,6 +479,11 @@ model Result {
 
   certificate        Certificate?
   aiAnalysis         AIAnalysis?
+
+  @@index([companyId])
+  @@index([examId])
+  @@index([userId])
+  @@index([isPassed])
 }
 
 model Certificate {
@@ -366,11 +502,20 @@ model Certificate {
   status            String          @default("VALID") // VALID, EXPIRED, REVOKED
   verificationToken String          @unique @default(cuid())
   pdfUrl            String?
-  metadataJson      String?         // Additional certificate metadata (e.g. issuer signatures, honors)
+  metadataJson      String?         // Additional metadata
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([examId])
+  @@index([verificationToken])
+  @@index([certNumber])
 }
 
+// ---------------------------------------------------------
+// 7. AI ANALYSIS & TRAINING COURSES / ENROLLMENTS
+// ---------------------------------------------------------
 model AIAnalysis {
   id                       String          @id @default(cuid())
   companyId                String
@@ -385,6 +530,9 @@ model AIAnalysis {
   improvementRoadmapJson   String          // JSON array of step-by-step actions
   recommendedActionsJson   String          // JSON array of course/assessment suggestions
   createdAt                DateTime        @default(now())
+
+  @@index([companyId])
+  @@index([userId])
 }
 
 model TrainingRecommendation {
@@ -400,8 +548,100 @@ model TrainingRecommendation {
   status          String           @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([status])
 }
 
+model TrainingCourse {
+  id             String               @id @default(cuid())
+  companyId      String
+  company        Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title          String
+  code           String
+  description    String?
+  category       String               @default("Technical")
+  difficulty     String               @default("INTERMEDIATE") // BEGINNER, INTERMEDIATE, ADVANCED
+  durationHours  Float                @default(10.0)
+  status         String               @default("PUBLISHED") // DRAFT, PUBLISHED, ARCHIVED
+  syllabusJson   String?              // JSON structure of syllabus modules
+  createdById    String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  enrollments    TrainingEnrollment[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([status])
+}
+
+model TrainingEnrollment {
+  id              String         @id @default(cuid())
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  courseId        String
+  course          TrainingCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          String         @default("ENROLLED") // ENROLLED, IN_PROGRESS, COMPLETED, DROPPED
+  progressPercent Float          @default(0.0)
+  score           Float?
+  enrolledAt      DateTime       @default(now())
+  completedAt     DateTime?
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([courseId, userId])
+  @@index([companyId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------
+// 8. ASSESSMENTS
+// ---------------------------------------------------------
+model Assessment {
+  id               String                 @id @default(cuid())
+  companyId        String
+  company          Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title            String
+  code             String
+  description      String?
+  type             String                 @default("PRE_HIRE") // PRE_HIRE, PROMOTION, ANNUAL_REVIEW, SKILL_GAP
+  passingScore     Float                  @default(70.0)
+  status           String                 @default("ACTIVE") // ACTIVE, DRAFT, ARCHIVED
+  examId           String?
+  exam             Exam?                  @relation(fields: [examId], references: [id], onDelete: SetNull)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  submissions      AssessmentSubmission[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([status])
+}
+
+model AssessmentSubmission {
+  id             String      @id @default(cuid())
+  assessmentId   String
+  assessment     Assessment  @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score          Float       @default(0.0)
+  isPassed       Boolean     @default(false)
+  feedback       String?
+  submittedAt    DateTime    @default(now())
+
+  @@index([assessmentId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------
+// 9. NOTIFICATIONS & AUDIT LOGS
+// ---------------------------------------------------------
 model Notification {
   id              String           @id @default(cuid())
   userId          String
@@ -414,6 +654,10 @@ model Notification {
   isRead          Boolean          @default(false)
   linkUrl         String?
   createdAt       DateTime         @default(now())
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([isRead])
 }
 
 model AuditLog {
@@ -423,11 +667,17 @@ model AuditLog {
   userId          String?
   user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   userEmail       String?
-  action          String           // LOGIN, LOGOUT, CREATE_USER, CREATE_EXAM, SUBMIT_EXAM, ISSUE_CERT, REVOKE_CERT, etc.
+  action          String           // LOGIN, LOGOUT, CREATE_USER, CREATE_EXAM, SUBMIT_EXAM, ISSUE_CERT, etc.
   entity          String           // USER, EXAM, RESULT, CERTIFICATE, COMPANY, etc.
   entityId        String?
   detailsJson     String?
   ipAddress       String?
   userAgent       String?
   createdAt       DateTime         @default(now())
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
 }

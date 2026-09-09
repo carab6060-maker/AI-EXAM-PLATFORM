@@ -33,19 +33,20 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-slate-200">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-3" />
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Loading Enterprise Session...</p>
+      <div style={{ minHeight: '100vh', background: '#EEF2F9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+        <div style={{ width: '40px', height: '40px', border: '3px solid #BFDBFE', borderTopColor: '#3B82F6', borderRadius: '50%', animation: 'dashSpin 0.8s linear infinite' }} />
+        <p style={{ fontSize: '12px', fontWeight: 600, color: '#94A3B8', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Loading Session...</p>
+        <style>{`@keyframes dashSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div style={{ minHeight: '100vh', background: '#EEF2F9', display: 'flex', flexDirection: 'column' }}>
       <Navbar user={user} />
-      <div className="flex flex-1">
+      <div style={{ display: 'flex', flex: 1 }}>
         <Sidebar userRole={user?.role} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+        <main style={{ flex: 1, padding: '24px 28px', overflowY: 'auto', maxWidth: '1400px', width: '100%' }}>
           {children}
         </main>
       </div>

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword, signToken, AuthSession } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
-import { SOMALI_USERS, SOMALI_COMPANIES } from '@/lib/enterprise-store';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,50 +13,19 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.toLowerCase().trim();
 
-    let user: any = null;
-
-    // 1. Try querying Prisma Database first
-    try {
-      user = await prisma.user.findUnique({
-        where: { email: cleanEmail },
-        include: {
-          company: true,
-          employeeProfile: {
-            include: {
-              department: true,
-              position: true,
-            },
+    // Query Neon PostgreSQL database
+    const user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+      include: {
+        company: true,
+        employeeProfile: {
+          include: {
+            department: true,
+            position: true,
           },
         },
-      });
-    } catch (dbErr) {
-      console.warn('Prisma lookup failed on serverless, switching to resilient fallback store:', dbErr);
-    }
-
-    // 2. If DB user not found or DB unavailable, check Resilient Somali Enterprise Store
-    if (!user) {
-      const fallbackUser = SOMALI_USERS.find(
-        (u) => u.email.toLowerCase() === cleanEmail
-      );
-
-      if (fallbackUser) {
-        // Accept valid demo passwords
-        const isDemoPassMatch =
-          password === 'Password123!' ||
-          password === 'SuperAdmin123!' ||
-          password === 'admin123' ||
-          password === '12345678';
-
-        if (!isDemoPassMatch) {
-          return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
-        }
-
-        user = {
-          ...fallbackUser,
-          company: fallbackUser.company || SOMALI_COMPANIES.find((c) => c.id === fallbackUser.companyId),
-        };
-      }
-    }
+      },
+    });
 
     if (!user) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
@@ -68,15 +36,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (user.company && user.company.status !== 'ACTIVE' && user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Company subscription/account is currently suspended' }, { status: 403 });
+      return NextResponse.json({ error: 'Company subscription or account is currently suspended' }, { status: 403 });
     }
 
-    // Verify DB password if hash exists
-    if (user.passwordHash) {
-      const isMatch = await verifyPassword(password, user.passwordHash);
-      if (!isMatch) {
-        return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
-      }
+    // Verify hashed password securely using bcrypt
+    const isMatch = await verifyPassword(password, user.passwordHash);
+    if (!isMatch) {
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
     const sessionPayload: AuthSession = {
@@ -100,7 +66,7 @@ export async function POST(req: NextRequest) {
         req,
       });
     } catch (auditErr) {
-      // Non-blocking
+      // Non-blocking audit error
     }
 
     const response = NextResponse.json({
@@ -130,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error: any) {
-    console.error('Login error details:', error);
-    return NextResponse.json({ error: 'Login process error, please try again.' }, { status: 500 });
+    console.error('Database login error:', error);
+    return NextResponse.json({ error: 'Database authentication failed. Please check database connection.' }, { status: 500 });
   }
 }

@@ -21,28 +21,33 @@ export async function GET(req: NextRequest) {
     where.userId = employeeId;
   }
 
-  const results = await prisma.result.findMany({
-    where,
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          avatar: true,
-          employeeProfile: {
-            include: { department: true, position: true },
+  try {
+    const results = await prisma.result.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
+            employeeProfile: {
+              include: { department: true, position: true },
+            },
           },
         },
+        exam: {
+          include: { subject: true },
+        },
+        certificate: true,
+        aiAnalysis: true,
       },
-      exam: {
-        include: { subject: true },
-      },
-      certificate: true,
-      aiAnalysis: true,
-    },
-    orderBy: { gradedAt: 'desc' },
-  });
+      orderBy: { gradedAt: 'desc' },
+    });
 
-  return NextResponse.json({ results });
+    return NextResponse.json({ results: results || [] });
+  } catch (err: any) {
+    console.error('Error fetching results:', err);
+    return NextResponse.json({ error: 'Failed to retrieve results', details: err?.message }, { status: 500 });
+  }
 }

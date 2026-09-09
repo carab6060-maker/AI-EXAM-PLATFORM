@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { getSessionFromRequest } from '@/lib/auth';
 import { unauthorizedResponse, forbiddenResponse } from '@/lib/tenant';
 import { logAudit } from '@/lib/audit';
-import { SOMALI_COMPANIES } from '@/lib/enterprise-store';
 
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -25,9 +24,7 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { createdAt: 'desc' },
       });
-      if (companies && companies.length > 0) {
-        return NextResponse.json({ companies });
-      }
+      return NextResponse.json({ companies: companies || [] });
     } else {
       if (!session.companyId) return forbiddenResponse();
       const company = await prisma.company.findUnique({
@@ -43,21 +40,12 @@ export async function GET(req: NextRequest) {
           },
         },
       });
-      if (company) {
-        return NextResponse.json({ companies: [company] });
-      }
+      return NextResponse.json({ companies: company ? [company] : [] });
     }
-  } catch (err) {
-    console.warn('Prisma companies query fallback:', err);
+  } catch (err: any) {
+    console.error('Database companies query error:', err);
+    return NextResponse.json({ error: 'Failed to retrieve companies from database', details: err?.message }, { status: 500 });
   }
-
-  // Resilient fallback
-  if (session.role === 'SUPER_ADMIN') {
-    return NextResponse.json({ companies: SOMALI_COMPANIES });
-  }
-
-  const userComp = SOMALI_COMPANIES.find((c) => c.id === session.companyId) || SOMALI_COMPANIES[0];
-  return NextResponse.json({ companies: [userComp] });
 }
 
 export async function POST(req: NextRequest) {
@@ -68,19 +56,29 @@ export async function POST(req: NextRequest) {
 
   const data = await req.json();
 
+  if (!data.name || !data.code) {
+    return NextResponse.json({ error: 'Company name and unique code are required' }, { status: 400 });
+  }
+
   try {
+    const cleanCode = data.code.toUpperCase().trim();
+    const existing = await prisma.company.findUnique({ where: { code: cleanCode } });
+    if (existing) {
+      return NextResponse.json({ error: 'Company code already registered' }, { status: 409 });
+    }
+
     const company = await prisma.company.create({
       data: {
-        name: data.name,
-        code: data.code.toUpperCase().trim(),
-        email: data.email,
-        phone: data.phone,
-        address: data.address,
-        website: data.website,
-        industry: data.industry,
+        name: data.name.trim(),
+        code: cleanCode,
+        email: data.email || null,
+        phone: data.phone || null,
+        address: data.address || null,
+        website: data.website || null,
+        industry: data.industry || 'Enterprise',
         status: data.status || 'ACTIVE',
         plan: data.plan || 'ENTERPRISE',
-        logo: data.logo,
+        logo: data.logo || null,
       },
     });
 
@@ -95,15 +93,10 @@ export async function POST(req: NextRequest) {
       });
     } catch (e) {}
 
-    return NextResponse.json({ company }, { status: 201 });
-  } catch (err) {
-    // Fallback created response
-    const mockCompany = {
-      id: `comp-${Date.now()}`,
-      ...data,
-      createdAt: new Date().toISOString(),
-    };
-    return NextResponse.json({ company: mockCompany }, { status: 201 });
+    return NextResponse.json({ success: true, company }, { status: 201 });
+  } catch (err: any) {
+    console.error('Error creating company in database:', err);
+    return NextResponse.json({ error: err?.message || 'Failed to create company in database' }, { status: 500 });
   }
 }
 
@@ -122,20 +115,21 @@ export async function PUT(req: NextRequest) {
     const updated = await prisma.company.update({
       where: { id: companyId },
       data: {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        address: data.address,
-        website: data.website,
-        industry: data.industry,
+        name: data.name ? data.name.trim() : undefined,
+        email: data.email !== undefined ? data.email : undefined,
+        phone: data.phone !== undefined ? data.phone : undefined,
+        address: data.address !== undefined ? data.address : undefined,
+        website: data.website !== undefined ? data.website : undefined,
+        industry: data.industry !== undefined ? data.industry : undefined,
         status: session.role === 'SUPER_ADMIN' && data.status ? data.status : undefined,
         plan: session.role === 'SUPER_ADMIN' && data.plan ? data.plan : undefined,
-        logo: data.logo,
+        logo: data.logo !== undefined ? data.logo : undefined,
       },
     });
 
-    return NextResponse.json({ company: updated });
-  } catch (err) {
-    return NextResponse.json({ company: { id: companyId, ...data } });
+    return NextResponse.json({ success: true, company: updated });
+  } catch (err: any) {
+    console.error('Error updating company in database:', err);
+    return NextResponse.json({ error: err?.message || 'Failed to update company in database' }, { status: 500 });
   }
 }

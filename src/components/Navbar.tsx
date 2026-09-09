@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Shield, Building2, User, LogOut, ChevronDown, CheckCircle2, Sparkles } from 'lucide-react';
+import { Shield, Building2, User, LogOut, ChevronDown, Bell } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 
 interface NavbarProps {
@@ -21,6 +21,23 @@ interface NavbarProps {
   } | null;
 }
 
+const ROLE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  SUPER_ADMIN:       { bg: '#1E293B', text: '#F8FAFC', border: '#334155' },
+  COMPANY_ADMIN:     { bg: '#EFF6FF', text: '#1D4ED8', border: '#BFDBFE' },
+  HR_MANAGER:        { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' },
+  TRAINING_MANAGER:  { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
+  EXAMINER:          { bg: '#F0F9FF', text: '#0369A1', border: '#BAE6FD' },
+  EMPLOYEE:          { bg: '#F8FAFC', text: '#475569', border: '#E2E8F0' },
+};
+
+const AVATAR_COLORS = ['#3B82F6','#8B5CF6','#10B981','#F59E0B','#EF4444','#EC4899'];
+
+function getAvatarColor(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
 export default function Navbar({ user }: NavbarProps) {
   const router = useRouter();
   const [profileOpen, setProfileOpen] = React.useState(false);
@@ -30,114 +47,99 @@ export default function Navbar({ user }: NavbarProps) {
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/login');
       router.refresh();
-    } catch (e) {
-      // fallback redirect
+    } catch {
       window.location.href = '/login';
     }
   };
 
-  const getRoleBadge = (role?: string) => {
-    switch (role) {
-      case 'SUPER_ADMIN':
-        return 'bg-slate-900 text-white border-slate-900';
-      case 'COMPANY_ADMIN':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'HR_MANAGER':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'TRAINING_MANAGER':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'EXAMINER':
-        return 'bg-sky-50 text-sky-700 border-sky-200';
-      default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
-    }
-  };
+  const roleStyle = ROLE_COLORS[user?.role || 'EMPLOYEE'] || ROLE_COLORS.EMPLOYEE;
+  const avatarColor = user?.name ? getAvatarColor(user.name) : '#3B82F6';
+  const initials = user?.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
-      <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Left Branding / Company Badge */}
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
-              <Shield className="w-5 h-5" />
+    <header style={{ position: 'sticky', top: 0, zIndex: 30, background: '#fff', borderBottom: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <div style={{ padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+        {/* Left: Brand + Company */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'linear-gradient(135deg, #3B82F6, #6366F1)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 10px rgba(59,130,246,0.3)', flexShrink: 0 }}>
+              <Shield size={19} color="white" />
             </div>
             <div>
-              <span className="text-base font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-                CertiMatrix <span className="text-[10px] uppercase font-bold tracking-widest bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-200">Enterprise</span>
-              </span>
-              <span className="text-[11px] text-slate-500 font-medium block">Assessment & Training SaaS</span>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#1E293B', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
+                CertiMatrix
+                <span style={{ marginLeft: '7px', fontSize: '9px', fontWeight: 700, background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', borderRadius: '5px', padding: '2px 6px', letterSpacing: '0.5px', textTransform: 'uppercase', verticalAlign: 'middle' }}>Enterprise</span>
+              </div>
+              <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 500 }}>Assessment & Training SaaS</div>
             </div>
           </Link>
 
           {user?.company && (
-            <div className="hidden md:flex items-center gap-2 pl-4 ml-4 border-l border-slate-200">
-              <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
-                <Building2 className="w-3.5 h-3.5" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '16px', marginLeft: '8px', borderLeft: '1px solid #E2E8F0' }}>
+              <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Building2 size={13} color="#64748B" />
               </div>
-              <span className="text-xs font-semibold text-slate-800">{user.company.name}</span>
-              <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded uppercase font-bold">
-                {user.company.code}
-              </span>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#1E293B', lineHeight: 1 }}>{user.company.name}</div>
+                <div style={{ fontSize: '10px', color: '#94A3B8', fontFamily: 'monospace', fontWeight: 600, textTransform: 'uppercase' }}>{user.company.code}</div>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Right Session & Actions */}
-        <div className="flex items-center gap-3">
+        {/* Right: Notifications + User */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <NotificationBell />
 
           {/* User Menu */}
-          <div className="relative">
+          <div style={{ position: 'relative' }}>
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-3 p-1.5 pl-2 rounded-xl hover:bg-slate-100/80 transition"
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 10px 6px 6px', borderRadius: '12px', border: '1px solid #E2E8F0', background: profileOpen ? '#F8FAFC' : '#fff', cursor: 'pointer', transition: 'all 0.15s' }}
             >
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-semibold text-slate-900 leading-tight">{user?.name || 'Guest User'}</p>
-                <span
-                  className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.2 rounded border ${getRoleBadge(
-                    user?.role
-                  )}`}
-                >
-                  {user?.role?.replace('_', ' ') || 'USER'}
+              {/* Avatar */}
+              <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: avatarColor, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800, flexShrink: 0, overflow: 'hidden' }}>
+                {user?.avatar ? <img src={user.avatar} alt={user?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+              </div>
+              <div style={{ textAlign: 'left', display: 'none' }} className="sm:block">
+                <div style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#1E293B', lineHeight: 1.2 }}>{user?.name || 'Guest'}</div>
+                <span style={{ display: 'inline-block', marginTop: '2px', fontSize: '10px', fontWeight: 700, background: roleStyle.bg, color: roleStyle.text, border: `1px solid ${roleStyle.border}`, borderRadius: '5px', padding: '1px 6px' }}>
+                  {user?.role?.replace(/_/g, ' ') || 'USER'}
                 </span>
               </div>
-              <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-sm overflow-hidden">
-                {user?.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                ) : (
-                  user?.name?.charAt(0) || 'U'
-                )}
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
+              <ChevronDown size={13} color="#94A3B8" />
             </button>
 
             {profileOpen && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-2 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="px-3 py-2.5 border-b border-slate-100 mb-1">
-                    <p className="text-xs font-semibold text-slate-900">{user?.name}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setProfileOpen(false)} />
+                <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: '240px', background: '#fff', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 16px 48px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden' }}>
+                  {/* Header */}
+                  <div style={{ padding: '14px 16px', borderBottom: '1px solid #F1F5F9' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#1E293B' }}>{user?.name}</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
                   </div>
-
-                  <div className="space-y-0.5">
+                  {/* Links */}
+                  <div style={{ padding: '6px' }}>
                     <Link
                       href="/dashboard/settings"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition"
+                      style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '9px', fontSize: '13px', fontWeight: 500, color: '#475569', textDecoration: 'none', transition: 'background 0.12s' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#F8FAFC'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                     >
-                      <User className="w-4 h-4 text-slate-400" /> Organization & Profile
+                      <User size={14} color="#94A3B8" /> Organisation & Profile
                     </Link>
                   </div>
-
-                  <div className="pt-2 mt-1 border-t border-slate-100">
+                  <div style={{ padding: '6px', borderTop: '1px solid #F1F5F9' }}>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '9px', fontSize: '13px', fontWeight: 500, color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.12s' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FEF2F2'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                     >
-                      <LogOut className="w-4 h-4 text-rose-500" /> Sign Out
+                      <LogOut size={14} color="#EF4444" /> Sign Out
                     </button>
                   </div>
                 </div>
@@ -149,3 +151,5 @@ export default function Navbar({ user }: NavbarProps) {
     </header>
   );
 }
+
+

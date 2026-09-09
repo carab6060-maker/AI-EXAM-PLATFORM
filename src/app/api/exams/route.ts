@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { getSessionFromRequest, hasPermission } from '@/lib/auth';
 import { unauthorizedResponse, forbiddenResponse, tenantScopedWhere } from '@/lib/tenant';
 import { logAudit } from '@/lib/audit';
-import { SOMALI_EXAMS } from '@/lib/enterprise-store';
 
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -54,9 +53,7 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: 'desc' },
       });
 
-      if (exams && exams.length > 0) {
-        return NextResponse.json({ exams });
-      }
+      return NextResponse.json({ exams: exams || [] });
     } else {
       // Admin view
       const exams = await prisma.exam.findMany({
@@ -75,20 +72,12 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: 'desc' },
       });
 
-      if (exams && exams.length > 0) {
-        return NextResponse.json({ exams });
-      }
+      return NextResponse.json({ exams: exams || [] });
     }
-  } catch (err) {
-    console.warn('Prisma exams query fallback:', err);
+  } catch (err: any) {
+    console.error('Prisma exams query error:', err);
+    return NextResponse.json({ error: 'Failed to retrieve exams from database', details: err?.message }, { status: 500 });
   }
-
-  // Fallback to Somali Enterprise Exams
-  const fallback = SOMALI_EXAMS.map((e) => ({
-    ...e,
-    attempts: [],
-  }));
-  return NextResponse.json({ exams: fallback });
 }
 
 export async function POST(req: NextRequest) {
@@ -130,82 +119,89 @@ export async function POST(req: NextRequest) {
 
   const cleanCode = code.toUpperCase().trim();
 
-  let finalQuestionIds: string[] = [];
+  try {
+    let finalQuestionIds: string[] = [];
 
-  if (questionSelectionMode === 'RANDOM_POOL') {
-    // Pick random active questions from this subject
-    const available = await prisma.question.findMany({
-      where: { companyId, subjectId, status: 'ACTIVE' },
+    if (questionSelectionMode === 'RANDOM_POOL') {
+      // Pick random active questions from this subject
+      const available = await prisma.question.findMany({
+        where: { companyId, subjectId, status: 'ACTIVE' },
+        select: { id: true, marks: true },
+      });
+      const shuffled = [...available].sort(() => 0.5 - Math.random());
+      finalQuestionIds = shuffled.slice(0, Math.min(randomQuestionCount, shuffled.length)).map((q) => q.id);
+    } else {
+      finalQuestionIds = selectedQuestionIds;
+    }
+
+    if (finalQuestionIds.length === 0) {
+      return NextResponse.json({ error: 'An exam must contain at least one question.' }, { status: 400 });
+    }
+
+    // Fetch question marks to calculate totalMarks
+    const questionsData = await prisma.question.findMany({
+      where: { id: { in: finalQuestionIds } },
       select: { id: true, marks: true },
     });
-    const shuffled = [...available].sort(() => 0.5 - Math.random());
-    finalQuestionIds = shuffled.slice(0, Math.min(randomQuestionCount, shuffled.length)).map((q) => q.id);
-  } else {
-    finalQuestionIds = selectedQuestionIds;
-  }
 
-  if (finalQuestionIds.length === 0) {
-    return NextResponse.json({ error: 'An exam must contain at least one question.' }, { status: 400 });
-  }
+    const totalMarks = questionsData.reduce((sum, q) => sum + (q.marks || 1), 0);
 
-  // Fetch question marks to calculate totalMarks
-  const questionsData = await prisma.question.findMany({
-    where: { id: { in: finalQuestionIds } },
-    select: { id: true, marks: true },
-  });
-
-  const totalMarks = questionsData.reduce((sum, q) => sum + (q.marks || 1), 0);
-
-  const exam = await prisma.exam.create({
-    data: {
-      companyId,
-      subjectId,
-      title: title.trim(),
-      code: cleanCode,
-      description: description || null,
-      instructions: instructions || null,
-      examType,
-      durationMinutes: parseInt(durationMinutes.toString()) || 60,
-      passScorePercent: parseFloat(passScorePercent.toString()) || 70,
-      totalMarks,
-      questionCount: finalQuestionIds.length,
-      randomQuestions: !!randomQuestions,
-      randomOptions: !!randomOptions,
-      allowRetakes: !!allowRetakes,
-      maxAttempts: parseInt(maxAttempts.toString()) || 3,
-      isCertEligible: !!isCertEligible,
-      scheduleStart: scheduleStart ? new Date(scheduleStart) : null,
-      scheduleEnd: scheduleEnd ? new Date(scheduleEnd) : null,
-      fullScreenRequired: !!fullScreenRequired,
-      tabSwitchDetect: !!tabSwitchDetect,
-      copyPasteRestrict: !!copyPasteRestrict,
-      status: 'PUBLISHED',
-      createdById: session.userId,
-      examQuestions: {
-        create: finalQuestionIds.map((qId, idx) => {
-          const qObj = questionsData.find((q) => q.id === qId);
-          return {
-            questionId: qId,
-            orderIndex: idx,
-            marks: qObj?.marks || 1.0,
-          };
-        }),
+    const exam = await prisma.exam.create({
+      data: {
+        companyId,
+        subjectId,
+        title: title.trim(),
+        code: cleanCode,
+        description: description || null,
+        instructions: instructions || null,
+        examType,
+        durationMinutes: parseInt(durationMinutes.toString()) || 60,
+        passScorePercent: parseFloat(passScorePercent.toString()) || 70,
+        totalMarks,
+        questionCount: finalQuestionIds.length,
+        randomQuestions: !!randomQuestions,
+        randomOptions: !!randomOptions,
+        allowRetakes: !!allowRetakes,
+        maxAttempts: parseInt(maxAttempts.toString()) || 3,
+        isCertEligible: !!isCertEligible,
+        scheduleStart: scheduleStart ? new Date(scheduleStart) : null,
+        scheduleEnd: scheduleEnd ? new Date(scheduleEnd) : null,
+        fullScreenRequired: !!fullScreenRequired,
+        tabSwitchDetect: !!tabSwitchDetect,
+        copyPasteRestrict: !!copyPasteRestrict,
+        status: 'PUBLISHED',
+        createdById: session.userId,
+        examQuestions: {
+          create: finalQuestionIds.map((qId, idx) => {
+            const qObj = questionsData.find((q) => q.id === qId);
+            return {
+              questionId: qId,
+              orderIndex: idx,
+              marks: qObj?.marks || 1.0,
+            };
+          }),
+        },
       },
-    },
-    include: {
-      examQuestions: true,
-      subject: true,
-    },
-  });
+      include: {
+        examQuestions: true,
+        subject: true,
+      },
+    });
 
-  await logAudit({
-    session,
-    action: 'CREATE_EXAM',
-    entity: 'EXAM',
-    entityId: exam.id,
-    details: { title: exam.title, code: exam.code, questions: finalQuestionIds.length },
-    req,
-  });
+    try {
+      await logAudit({
+        session,
+        action: 'CREATE_EXAM',
+        entity: 'EXAM',
+        entityId: exam.id,
+        details: { title: exam.title, code: exam.code, questions: finalQuestionIds.length },
+        req,
+      });
+    } catch (auditErr) {}
 
-  return NextResponse.json({ exam }, { status: 201 });
+    return NextResponse.json({ exam }, { status: 201 });
+  } catch (err: any) {
+    console.error('Error creating exam in database:', err);
+    return NextResponse.json({ error: err?.message || 'Failed to create exam in database' }, { status: 500 });
+  }
 }

@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { getSessionFromRequest, hasPermission, hashPassword } from '@/lib/auth';
 import { unauthorizedResponse, forbiddenResponse, tenantScopedWhere } from '@/lib/tenant';
 import { logAudit } from '@/lib/audit';
-import { SOMALI_USERS, SOMALI_COMPANIES } from '@/lib/enterprise-store';
 
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -55,69 +54,22 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (employees && employees.length > 0) {
-      let filtered = employees;
-      if (search) {
-        filtered = employees.filter(
-          (e) =>
-            e.user.name.toLowerCase().includes(search) ||
-            e.user.email.toLowerCase().includes(search) ||
-            e.employeeId.toLowerCase().includes(search) ||
-            (e.phone && e.phone.toLowerCase().includes(search))
-        );
-      }
-      return NextResponse.json({ employees: filtered, count: filtered.length });
+    let filtered = employees || [];
+    if (search) {
+      filtered = filtered.filter(
+        (e) =>
+          e.user.name.toLowerCase().includes(search) ||
+          e.user.email.toLowerCase().includes(search) ||
+          e.employeeId.toLowerCase().includes(search) ||
+          (e.phone && e.phone.toLowerCase().includes(search))
+      );
     }
-  } catch (err) {
-    console.warn('Prisma employees query fallback:', err);
+
+    return NextResponse.json({ employees: filtered, count: filtered.length });
+  } catch (err: any) {
+    console.error('Error querying employees from database:', err);
+    return NextResponse.json({ error: 'Failed to retrieve employees from database', details: err?.message }, { status: 500 });
   }
-
-  // Resilient fallback employees from store
-  let mockEmployees = SOMALI_USERS.filter((u) => u.employeeProfile).map((u) => ({
-    id: `emp-prof-${u.id}`,
-    userId: u.id,
-    companyId: u.companyId || 'comp-dahabshiil-01',
-    employeeId: u.employeeProfile?.employeeId || 'EMP-1001',
-    phone: u.employeeProfile?.phone || '+252 (61) 500-0000',
-    skillsJson: u.employeeProfile?.skillsJson || '[]',
-    user: {
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      role: u.role,
-      status: u.status,
-      avatar: u.avatar,
-    },
-    department: null,
-    position: null,
-    _count: { examAssignments: 2 },
-  }));
-
-  if (session.role !== 'SUPER_ADMIN' && session.companyId) {
-    mockEmployees = mockEmployees.filter((e) => e.companyId === session.companyId);
-  } else if (companyIdParam) {
-    mockEmployees = mockEmployees.filter((e) => e.companyId === companyIdParam);
-  }
-
-  if (role && role !== 'ALL') {
-    mockEmployees = mockEmployees.filter((e) => e.user.role === role);
-  }
-
-  if (status && status !== 'ALL') {
-    mockEmployees = mockEmployees.filter((e) => e.user.status === status);
-  }
-
-  if (search) {
-    mockEmployees = mockEmployees.filter(
-      (e) =>
-        e.user.name.toLowerCase().includes(search) ||
-        e.user.email.toLowerCase().includes(search) ||
-        e.employeeId.toLowerCase().includes(search) ||
-        (e.phone && e.phone.toLowerCase().includes(search))
-    );
-  }
-
-  return NextResponse.json({ employees: mockEmployees, count: mockEmployees.length });
 }
 
 export async function POST(req: NextRequest) {
@@ -143,23 +95,14 @@ export async function POST(req: NextRequest) {
 
   let companyId =
     session.role === 'SUPER_ADMIN'
-      ? (targetCompanyId || session.companyId || 'comp-dahabshiil-01')
+      ? (targetCompanyId || session.companyId)
       : session.companyId;
 
-  // Resolve real database company ID if exists
-  try {
-    const comp = await prisma.company.findFirst({
-      where: {
-        OR: [
-          { id: companyId },
-          { code: 'DAHAB' },
-        ],
-      },
-    });
-    if (comp) {
-      companyId = comp.id;
-    }
-  } catch (e) {}
+  if (!companyId) {
+    // If super admin didn't pass companyId, find the first active company
+    const firstComp = await prisma.company.findFirst({ where: { status: 'ACTIVE' } });
+    if (firstComp) companyId = firstComp.id;
+  }
 
   if (!companyId) {
     return NextResponse.json({ error: 'Company association is required' }, { status: 400 });
@@ -254,26 +197,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, employee: result }, { status: 201 });
   } catch (err: any) {
-    console.warn('Prisma create employee fallback:', err);
-    // In-memory resilient response
-    const mockCreated = {
-      id: `prof-${Date.now()}`,
-      userId: `usr-${Date.now()}`,
-      companyId,
-      employeeId: cleanEmpId,
-      phone: phone || '+252 61 0000000',
-      skillsJson: Array.isArray(skills) ? JSON.stringify(skills) : '[]',
-      user: {
-        id: `usr-${Date.now()}`,
-        name: name.trim(),
-        email: cleanEmail,
-        role,
-        status: 'ACTIVE',
-      },
-      department: null,
-      position: null,
-      _count: { examAssignments: 0 },
-    };
-    return NextResponse.json({ success: true, employee: mockCreated }, { status: 201 });
+    console.error('Error creating employee in database:', err);
+    return NextResponse.json({ error: err?.message || 'Failed to create employee in database' }, { status: 500 });
   }
 }

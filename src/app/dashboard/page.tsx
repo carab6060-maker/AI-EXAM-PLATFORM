@@ -122,32 +122,28 @@ export default function DashboardHomePage() {
             value={companies.length}
             subtitle={`${companies.filter((c) => c.status === 'ACTIVE').length} Active Tenants`}
             icon={Building}
-            iconBgColor="bg-purple-50"
-            iconColor="text-purple-600"
+            gradient="purple"
           />
           <StatsCard
             title="Total Assessments"
             value={reportData?.metrics?.totalAttempts || 0}
             subtitle="Across all companies"
             icon={FileCheck}
-            iconBgColor="bg-blue-50"
-            iconColor="text-blue-600"
+            gradient="blue"
           />
           <StatsCard
             title="Avg Platform Pass Rate"
             value={`${reportData?.metrics?.passRate || 0}%`}
             subtitle="Qualification benchmark"
             icon={TrendingUp}
-            iconBgColor="bg-emerald-50"
-            iconColor="text-emerald-600"
+            gradient="green"
           />
           <StatsCard
             title="Certificates Issued"
             value={reportData?.metrics?.totalCertificates || 0}
             subtitle="Public verifiable credentials"
             icon={Award}
-            iconBgColor="bg-amber-50"
-            iconColor="text-amber-600"
+            gradient="amber"
           />
         </div>
 
@@ -234,32 +230,28 @@ export default function DashboardHomePage() {
             value={metrics.totalEmployees || 0}
             subtitle="Active organization staff"
             icon={Users}
-            iconBgColor="bg-blue-50"
-            iconColor="text-blue-600"
+            gradient="blue"
           />
           <StatsCard
             title="Exams Configured"
             value={metrics.totalExams || 0}
             subtitle="Active subject assessments"
             icon={FileCheck}
-            iconBgColor="bg-slate-100"
-            iconColor="text-slate-700"
+            gradient="orange"
           />
           <StatsCard
             title="Average Pass Rate"
             value={`${metrics.passRate || 0}%`}
             subtitle={`${metrics.passedResults || 0} of ${metrics.totalResults || 0} passed`}
             icon={TrendingUp}
-            iconBgColor="bg-emerald-50"
-            iconColor="text-emerald-600"
+            gradient="green"
           />
           <StatsCard
             title="Certificates Issued"
             value={metrics.totalCertificates || 0}
             subtitle="Valid verifiable credentials"
             icon={Award}
-            iconBgColor="bg-amber-50"
-            iconColor="text-amber-600"
+            gradient="amber"
           />
         </div>
 
