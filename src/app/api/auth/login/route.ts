@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword, signToken, AuthSession } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
+import { setAuthMeCache } from '@/lib/cache';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,15 +14,17 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.toLowerCase().trim();
 
-    // Query Neon PostgreSQL database
+    // Query Neon PostgreSQL database with lean include
     const user = await prisma.user.findUnique({
       where: { email: cleanEmail },
       include: {
         company: true,
         employeeProfile: {
-          include: {
-            department: true,
-            position: true,
+          select: {
+            id: true,
+            employeeId: true,
+            departmentId: true,
+            positionId: true,
           },
         },
       },
@@ -57,30 +60,31 @@ export async function POST(req: NextRequest) {
 
     const token = signToken(sessionPayload);
 
-    try {
-      await logAudit({
-        session: sessionPayload,
-        action: 'LOGIN',
-        entity: 'USER',
-        entityId: user.id,
-        req,
-      });
-    } catch (auditErr) {
-      // Non-blocking audit error
-    }
+    // Asynchronous non-blocking audit log
+    logAudit({
+      session: sessionPayload,
+      action: 'LOGIN',
+      entity: 'USER',
+      entityId: user.id,
+      req,
+    }).catch(() => {});
+
+    const userData = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      avatar: user.avatar,
+      company: user.company,
+      profile: user.employeeProfile,
+    };
+
+    setAuthMeCache(user.id, userData);
 
     const response = NextResponse.json({
       success: true,
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        avatar: user.avatar,
-        company: user.company,
-        profile: user.employeeProfile,
-      },
+      user: userData,
     });
 
     // Set secure HTTP-only cookie

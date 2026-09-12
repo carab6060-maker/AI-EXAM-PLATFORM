@@ -127,7 +127,10 @@ export default function EmployeesPage() {
   };
 
   useEffect(() => {
-    fetchEmployees();
+    const timer = setTimeout(() => {
+      fetchEmployees();
+    }, search ? 300 : 0);
+    return () => clearTimeout(timer);
   }, [search, roleFilter, statusFilter]);
 
   // Handle CREATE

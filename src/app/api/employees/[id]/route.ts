@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getSessionFromRequest, hasPermission, hashPassword } from '@/lib/auth';
 import { unauthorizedResponse, forbiddenResponse, enforceTenantIsolation } from '@/lib/tenant';
 import { logAudit } from '@/lib/audit';
+import { invalidateEmployeeCache } from '@/lib/cache';
 
 export async function GET(
   req: NextRequest,
@@ -174,6 +175,7 @@ export async function PUT(
       });
     } catch (e) {}
 
+    invalidateEmployeeCache();
     return NextResponse.json({ success: true, employee: updated });
   } catch (err: any) {
     console.error('Error updating employee:', err);
@@ -240,6 +242,7 @@ export async function DELETE(
       });
     } catch (e) {}
 
+    invalidateEmployeeCache();
     return NextResponse.json({ success: true, message: 'Employee permanently deleted from database' });
   } catch (err: any) {
     console.error('Error deleting employee:', err);

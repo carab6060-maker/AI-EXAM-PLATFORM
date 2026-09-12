@@ -45,6 +45,18 @@ export function verifyToken(token: string): AuthSession | null {
   }
 }
 
+// In-memory cache for user active status attached to globalThis to eliminate 2.5s WAN latency per request
+const gAuth = globalThis as unknown as { __userStatusCache?: Map<string, { isValid: boolean; expiresAt: number }> };
+if (!gAuth.__userStatusCache) {
+  gAuth.__userStatusCache = new Map();
+}
+const userStatusCache = gAuth.__userStatusCache;
+
+export function invalidateUserStatus(userId?: string) {
+  if (userId) userStatusCache.delete(userId);
+  else userStatusCache.clear();
+}
+
 export async function getSessionFromRequest(req: NextRequest): Promise<AuthSession | null> {
   // Try reading auth token from Authorization Header or Cookie
   const authHeader = req.headers.get('authorization');
@@ -61,22 +73,33 @@ export async function getSessionFromRequest(req: NextRequest): Promise<AuthSessi
   const session = verifyToken(token);
   if (!session) return null;
 
-  try {
-    // Verify user is still active in DB if DB is accessible
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      include: { company: true },
-    });
+  const now = Date.now();
+  const cachedStatus = userStatusCache.get(session.userId);
+  if (cachedStatus && cachedStatus.expiresAt > now) {
+    if (!cachedStatus.isValid) return null;
+  } else {
+    try {
+      // Lightweight active check (only status columns, no relational payload)
+      const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: {
+          status: true,
+          company: { select: { status: true } },
+        },
+      });
 
-    if (user) {
-      if (user.status !== 'ACTIVE') return null;
-      if (user.company && user.company.status !== 'ACTIVE' && user.role !== 'SUPER_ADMIN') {
-        return null;
-      }
+      const isValid = Boolean(
+        user &&
+        user.status === 'ACTIVE' &&
+        (!user.company || user.company.status === 'ACTIVE' || session.role === 'SUPER_ADMIN')
+      );
+
+      userStatusCache.set(session.userId, { isValid, expiresAt: now + 300_000 }); // 5 min TTL
+      if (!isValid) return null;
+    } catch (dbErr) {
+      // Prisma offline / WAN timeout fallback - trust cryptographically verified JWT
+      console.warn('DB verify skipped in getSessionFromRequest, using JWT session');
     }
-  } catch (dbErr) {
-    // Prisma offline / Vercel SQLite fallback - trust valid JWT session
-    console.warn('DB verify skipped in getSessionFromRequest, using JWT session');
   }
 
   return {

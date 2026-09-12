@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Plus, Search, Layers, HelpCircle, FileCheck, Check, X, Loader2 } from 'lucide-react';
+import { Plus, X, Loader2, Edit3, Trash2 } from 'lucide-react';
 
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<any[]>([]);
@@ -40,7 +40,10 @@ export default function SubjectsPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const topicsArray = newSubj.topics.split(',').map((t) => t.trim()).filter((t) => t.length > 0);
+      const topicsArray = newSubj.topics
+        .split(',')
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
       const res = await fetch('/api/subjects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,178 +80,404 @@ export default function SubjectsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+      {/* Page Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Subject & Topic Catalog</h1>
-          <p className="text-xs text-slate-500 mt-1">Structure knowledge domains, curriculum topics, and assessment question banks.</p>
+          <div
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              color: '#64748B',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              marginBottom: '6px',
+            }}
+          >
+            WORKSPACE DIRECTORY
+          </div>
+          <h1
+            style={{
+              fontSize: '32px',
+              fontWeight: 800,
+              color: '#0F172A',
+              letterSpacing: '-0.5px',
+              margin: '0 0 6px 0',
+            }}
+          >
+            Subjects
+          </h1>
+          <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>
+            Manage assessment topics, examination codes, and domain curricula.
+          </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition flex items-center gap-2 self-start"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: '#0284C7',
+            color: '#FFFFFF',
+            border: 'none',
+            padding: '10px 18px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(2,132,199,0.25)',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = '#0369A1')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = '#0284C7')}
         >
-          <Plus className="w-4 h-4" /> Create New Subject
+          <Plus size={16} />
+          <span>Add subject</span>
         </button>
       </div>
 
-      {/* Subject Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? (
-          <div className="col-span-full py-12 text-center text-xs text-slate-400">Loading subjects...</div>
-        ) : subjects.length === 0 ? (
-          <div className="col-span-full bg-white rounded-2xl p-12 text-center text-xs text-slate-400 border border-slate-200">
-            No subjects created yet.
-          </div>
-        ) : (
-          subjects.map((subj) => (
-            <div key={subj.id} className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-sm hover:border-slate-300 transition space-y-4 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start justify-between">
-                  <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full uppercase border border-blue-200">
-                    {subj.category}
-                  </span>
-                  <span className="font-mono text-xs font-bold text-slate-500">{subj.code}</span>
-                </div>
+      {/* Subjects Table Card */}
+      <div
+        style={{
+          background: '#FFFFFF',
+          borderRadius: '18px',
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+                <th style={{ padding: '18px 24px', fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                  SUBJECT
+                </th>
+                <th style={{ padding: '18px 24px', fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                  DESCRIPTION
+                </th>
+                <th style={{ padding: '18px 24px', fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                  QUESTION BANK
+                </th>
+                <th style={{ padding: '18px 24px', fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                  EXAMS
+                </th>
+                <th style={{ padding: '18px 24px', fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                  STATUS
+                </th>
+                <th style={{ padding: '18px 24px', fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.8px', textTransform: 'uppercase', textAlign: 'right' }}>
+                  ACTIONS
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+                    Loading subjects...
+                  </td>
+                </tr>
+              ) : subjects.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+                    No subjects found. Click "+ Add subject" to create one.
+                  </td>
+                </tr>
+              ) : (
+                subjects.map((subj) => (
+                  <tr
+                    key={subj.id}
+                    style={{ borderBottom: '1px solid #F8FAFC', transition: 'background 0.1s' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#FBFCFE')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {/* Subject Name + Code */}
+                    <td style={{ padding: '18px 24px', verticalAlign: 'middle' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', lineHeight: 1.3 }}>
+                        {subj.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '3px', fontFamily: 'monospace' }}>
+                        {subj.code}
+                      </div>
+                    </td>
 
-                <h3 className="text-base font-bold text-slate-900 mt-2">{subj.name}</h3>
-                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{subj.description || 'Subject domain'}</p>
+                    {/* Description */}
+                    <td style={{ padding: '18px 24px', verticalAlign: 'middle', maxWidth: '320px' }}>
+                      <div style={{ fontSize: '13px', color: '#475569', lineHeight: 1.4 }}>
+                        {subj.description || '—'}
+                      </div>
+                    </td>
 
-                {subj.topics && subj.topics.length > 0 && (
-                  <div className="mt-4 pt-3 border-t border-slate-100">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                      Curriculum Topics ({subj.topics.length})
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {subj.topics.slice(0, 4).map((t: any) => (
-                        <span key={t.id} className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[10px] font-medium border border-slate-200">
-                          {t.name}
-                        </span>
-                      ))}
-                      {subj.topics.length > 4 && (
-                        <span className="px-1.5 py-0.5 text-[10px] text-slate-400 font-semibold">
-                          +{subj.topics.length - 4} more
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+                    {/* Question Bank Pill */}
+                    <td style={{ padding: '18px 24px', verticalAlign: 'middle' }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '4px 12px',
+                          borderRadius: '9999px',
+                          background: '#E0F2FE',
+                          color: '#0284C7',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {subj._count?.questions || 0} Questions
+                      </span>
+                    </td>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                <span className="flex items-center gap-1 font-semibold text-slate-700">
-                  <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
-                  {subj._count?.questions || 0} Questions
-                </span>
-                <span className="flex items-center gap-1 font-semibold text-slate-700">
-                  <FileCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  {subj._count?.exams || 0} Exams
-                </span>
-              </div>
-            </div>
-          ))
-        )}
+                    {/* Exams Pill */}
+                    <td style={{ padding: '18px 24px', verticalAlign: 'middle' }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '4px 12px',
+                          borderRadius: '9999px',
+                          background: '#E0F2FE',
+                          color: '#0284C7',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {subj._count?.exams || 0} Exams
+                      </span>
+                    </td>
+
+                    {/* Status */}
+                    <td style={{ padding: '18px 24px', verticalAlign: 'middle' }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: '#16A34A',
+                        }}
+                      >
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16A34A' }} />
+                        Active
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td style={{ padding: '18px 24px', verticalAlign: 'middle', textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          style={{
+                            padding: '5px 12px',
+                            background: '#F1F5F9',
+                            color: '#334155',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          style={{
+                            padding: '5px 8px',
+                            background: '#FEF2F2',
+                            color: '#EF4444',
+                            border: '1px solid #FEE2E2',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add Subject Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h3 className="text-base font-bold text-slate-900">Create New Assessment Subject</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-700">
-                <X className="w-5 h-5" />
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            background: 'rgba(15,23,42,0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: '18px',
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 24px 48px rgba(0,0,0,0.15)',
+              width: '100%',
+              maxWidth: '520px',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: '18px 24px',
+                borderBottom: '1px solid #F1F5F9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: '#F8FAFC',
+              }}
+            >
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+                Create New Assessment Subject
+              </h3>
+              <button
+                onClick={() => setShowAddModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
+            <form onSubmit={handleCreate} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Subject Name *</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                  Subject Name *
+                </label>
                 <input
                   type="text"
                   required
                   value={newSubj.name}
                   onChange={(e) => setNewSubj({ ...newSubj, name: e.target.value })}
-                  placeholder="e.g. Enterprise Information Security"
-                  className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="e.g. Hospital Financial Management"
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    fontSize: '13px',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #CBD5E1',
+                    outline: 'none',
+                  }}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Subject Code *</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    Subject Code *
+                  </label>
                   <input
                     type="text"
                     required
                     maxLength={10}
                     value={newSubj.code}
                     onChange={(e) => setNewSubj({ ...newSubj, code: e.target.value.toUpperCase() })}
-                    placeholder="e.g. SEC-101"
-                    className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 font-mono uppercase text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. FM-001"
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      fontSize: '13px',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid #CBD5E1',
+                      outline: 'none',
+                      fontFamily: 'monospace',
+                    }}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    Category
+                  </label>
                   <input
                     type="text"
                     value={newSubj.category}
                     onChange={(e) => setNewSubj({ ...newSubj, category: e.target.value })}
-                    className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      fontSize: '13px',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid #CBD5E1',
+                      outline: 'none',
+                    }}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Difficulty</label>
-                <select
-                  value={newSubj.difficulty}
-                  onChange={(e) => setNewSubj({ ...newSubj, difficulty: e.target.value })}
-                  className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="BEGINNER">Beginner</option>
-                  <option value="INTERMEDIATE">Intermediate</option>
-                  <option value="ADVANCED">Advanced</option>
-                  <option value="EXPERT">Expert</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                  Description
+                </label>
                 <textarea
                   rows={2}
                   value={newSubj.description}
                   onChange={(e) => setNewSubj({ ...newSubj, description: e.target.value })}
-                  placeholder="Subject learning objectives and scope..."
-                  className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Financial accounting, budgeting, cash, fixed assets..."
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    fontSize: '13px',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #CBD5E1',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                  }}
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Topics (Comma separated)</label>
-                <input
-                  type="text"
-                  value={newSubj.topics}
-                  onChange={(e) => setNewSubj({ ...newSubj, topics: e.target.value })}
-                  placeholder="e.g. Access Control, Threat Modeling, Incident Response"
-                  className="w-full text-xs font-medium bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-
-              <div className="pt-4 flex justify-end gap-2">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '8px' }}>
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid #E2E8F0',
+                    background: '#FFFFFF',
+                    color: '#64748B',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition flex items-center gap-2"
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#0284C7',
+                    color: '#FFFFFF',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
                 >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : null}
                   Create Subject
                 </button>
               </div>

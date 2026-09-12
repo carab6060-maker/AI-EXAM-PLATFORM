@@ -4,9 +4,17 @@ import { getSessionFromRequest } from '@/lib/auth';
 import { unauthorizedResponse, forbiddenResponse } from '@/lib/tenant';
 import { logAudit } from '@/lib/audit';
 
+import { getCompanyCache, setCompanyCache, invalidateCompanyCache } from '@/lib/cache';
+
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return unauthorizedResponse();
+
+  const cacheKey = `${session.role}_${session.companyId || 'all'}`;
+  const cached = getCompanyCache(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached);
+  }
 
   try {
     if (session.role === 'SUPER_ADMIN') {
@@ -24,7 +32,9 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { createdAt: 'desc' },
       });
-      return NextResponse.json({ companies: companies || [] });
+      const resPayload = { companies: companies || [] };
+      setCompanyCache(cacheKey, resPayload);
+      return NextResponse.json(resPayload);
     } else {
       if (!session.companyId) return forbiddenResponse();
       const company = await prisma.company.findUnique({
@@ -40,10 +50,13 @@ export async function GET(req: NextRequest) {
           },
         },
       });
-      return NextResponse.json({ companies: company ? [company] : [] });
+      const resPayload = { companies: company ? [company] : [] };
+      setCompanyCache(cacheKey, resPayload);
+      return NextResponse.json(resPayload);
     }
   } catch (err: any) {
     console.error('Database companies query error:', err);
+    if (cached) return NextResponse.json(cached);
     return NextResponse.json({ error: 'Failed to retrieve companies from database', details: err?.message }, { status: 500 });
   }
 }
@@ -93,6 +106,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (e) {}
 
+    invalidateCompanyCache();
     return NextResponse.json({ success: true, company }, { status: 201 });
   } catch (err: any) {
     console.error('Error creating company in database:', err);
@@ -127,6 +141,7 @@ export async function PUT(req: NextRequest) {
       },
     });
 
+    invalidateCompanyCache();
     return NextResponse.json({ success: true, company: updated });
   } catch (err: any) {
     console.error('Error updating company in database:', err);

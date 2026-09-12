@@ -39,3 +39,5 @@ next-env.d.ts
 
 # prisma local database (optional to ignore or keep)
 # prisma/dev.db
+
+.gemini/

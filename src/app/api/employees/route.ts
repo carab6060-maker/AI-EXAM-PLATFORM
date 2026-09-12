@@ -4,6 +4,8 @@ import { getSessionFromRequest, hasPermission, hashPassword } from '@/lib/auth';
 import { unauthorizedResponse, forbiddenResponse, tenantScopedWhere } from '@/lib/tenant';
 import { logAudit } from '@/lib/audit';
 
+import { getEmployeeCache, setEmployeeCache, invalidateEmployeeCache } from '@/lib/cache';
+
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return unauthorizedResponse();
@@ -13,6 +15,12 @@ export async function GET(req: NextRequest) {
   const role = searchParams.get('role');
   const status = searchParams.get('status');
   const companyIdParam = searchParams.get('companyId');
+
+  const cacheKey = `${session.userId}:${session.companyId}:${session.role}:${companyIdParam || ''}:${role || ''}:${status || ''}:${search || ''}`;
+  const cached = getEmployeeCache(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached);
+  }
 
   try {
     const where: any = tenantScopedWhere(session);
@@ -42,12 +50,16 @@ export async function GET(req: NextRequest) {
             createdAt: true,
           },
         },
-        department: true,
-        team: true,
-        position: true,
-        _count: {
+        department: {
           select: {
-            examAssignments: true,
+            id: true,
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
@@ -65,7 +77,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ employees: filtered, count: filtered.length });
+    const result = { employees: filtered, count: filtered.length };
+    setEmployeeCache(cacheKey, result);
+
+    return NextResponse.json(result);
   } catch (err: any) {
     console.error('Error querying employees from database:', err);
     return NextResponse.json({ error: 'Failed to retrieve employees from database', details: err?.message }, { status: 500 });
@@ -195,6 +210,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (e) {}
 
+    invalidateEmployeeCache();
     return NextResponse.json({ success: true, employee: result }, { status: 201 });
   } catch (err: any) {
     console.error('Error creating employee in database:', err);

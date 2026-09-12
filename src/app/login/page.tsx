@@ -30,6 +30,12 @@ export default function LoginPage() {
         throw new Error(data.error || 'Authentication failed. Please check your credentials.');
       }
 
+      if (data.user) {
+        try {
+          localStorage.setItem('auth_user', JSON.stringify(data.user));
+        } catch (e) {}
+      }
+
       router.push('/dashboard');
       router.refresh();
     } catch (err: any) {
